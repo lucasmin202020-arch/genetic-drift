@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://vr8v07fqky12"]
+
+[ext_resource type="Script" uid="uid://gtibv1rfcc2u" path="res://Scripts/preset_menu.gd" id="1_8ca5n"]
+
+[node name="PresetMenu" type="Control" unique_id=1142108802]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_8ca5n")

@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://bbn3al2ubo6ed"]
+
+[ext_resource type="Texture2D" uid="uid://breyi4wym17pe" path="res://Graphics/Blobs/blob 1.png" id="1_cmfp3"]
+[ext_resource type="Script" uid="uid://hyiq4ie5ijmb" path="res://Scripts/blob.gd" id="1_cvry1"]
+[ext_resource type="Texture2D" uid="uid://d084upj346f50" path="res://Graphics/Blobs/Eye.png" id="3_tqd60"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_tqd60"]
+radius = 214.02103
+
+[node name="blob" type="CharacterBody2D" unique_id=82043170]
+script = ExtResource("1_cvry1")
+
+[node name="BodySprite" type="Sprite2D" parent="." unique_id=736437357]
+texture = ExtResource("1_cmfp3")
+
+[node name="EyeSprite" type="Sprite2D" parent="." unique_id=1593837346]
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("3_tqd60")
+
+[node name="SpotsSprite" type="Sprite2D" parent="." unique_id=2130705857]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=123032811]
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_tqd60")

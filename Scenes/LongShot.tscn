@@ -1,0 +1,535 @@
+[gd_scene format=3 uid="uid://byoc0sx5c3p2w"]
+
+[ext_resource type="PackedScene" uid="uid://bbn3al2ubo6ed" path="res://Scenes/blob.tscn" id="2_667t6"]
+[ext_resource type="Texture2D" uid="uid://breyi4wym17pe" path="res://Graphics/Blobs/blob 1.png" id="3_83375"]
+[ext_resource type="Texture2D" uid="uid://bdj3pvgdx37ss" path="res://Graphics/Blobs/blob 2.png" id="4_qs0av"]
+[ext_resource type="Texture2D" uid="uid://froqy6mdua7m" path="res://Graphics/Blobs/blob 3.png" id="5_x83y6"]
+[ext_resource type="Texture2D" uid="uid://d084upj346f50" path="res://Graphics/Blobs/Eye.png" id="6_yjqwh"]
+[ext_resource type="Texture2D" uid="uid://eppjgnfo1pcs" path="res://Graphics/Blobs/Eye2.png" id="7_y37by"]
+[ext_resource type="Texture2D" uid="uid://vka8irw2uvdt" path="res://Graphics/Background/dark_lab_no_sidelines.svg" id="8_pcbvl"]
+[ext_resource type="Script" uid="uid://cuja8jbwafrwf" path="res://Scripts/ui.gd" id="9_phesp"]
+
+[sub_resource type="GDScript" id="GDScript_fdgxc"]
+script/source = "extends \"res://Scripts/coin_flip.gd\"
+
+# ===========================================================================
+#  PRESET: THE LONG SHOT
+#
+#  INHERITS from coin_flip.gd, so the entire look is identical — same panel,
+#  same bar chart, same frequency graph, same caption box, same cards.
+#  Only three things change:
+#
+#    1. The starting mix is lopsided: 8 blue, 2 red, 2 green.
+#    2. The wording frames it as a prediction to be tested.
+#    3. The results card keeps a TALLY across runs, comparing the predicted
+#       win rate (= each color's starting share) against what actually happens.
+#
+#  THE LESSON: an allele's chance of eventually taking over is exactly its
+#  starting frequency. Blue starts at 67%, so blue wins about two runs in
+#  three. Red and green start at 17% each and usually vanish early — but not
+#  always, and the tally converges on those numbers if you run it enough.
+#
+#  This is why drift erodes diversity: rare variants are usually the ones lost.
+#
+#  SETUP:
+#    1. Open CoinFlip.tscn -> Scene -> \"Save Scene As...\" -> LongShot.tscn
+#    2. Select the ROOT node of the NEW scene (check the tab says LongShot!)
+#    3. Clear coin_flip.gd, attach long_shot.gd.
+#    4. Confirm Blob Scene + the 5 textures are assigned. Save at once.
+# ===========================================================================
+
+# --- STARTING MIX: [red, green, blue] ---
+const MIX := [2, 2, 8]
+
+# Tally persists for the whole session, so leaving to the preset menu and
+# coming back doesn't wipe the experiment.
+static var wins: Array = [0, 0, 0]      # fixations, per color
+static var unresolved: int = 0          # runs that hit the time cap
+static var wipeouts: int = 0            # runs where everything died
+
+# --- tally UI refs ---
+var tally_rows: Array = []
+var tally_footer: Label
+
+func _ready():
+	# Set the scenario tunables BEFORE the base class builds anything.
+	p_start_mix = MIX
+	p_max_pop = 14           # small, so most runs resolve quickly
+	p_lifespan = 28.0
+	p_time_cap = 150.0
+	p_speed_index = 3        # 1.0x
+	super._ready()
+
+# ---------------------------------------------------------------------------
+#  SCENARIO TEXT
+# ---------------------------------------------------------------------------
+func _preset_title() -> String:
+	return \"The Long Shot\"
+
+func _preset_intro_bbcode() -> String:
+	return \"This time the population starts [b]lopsided[/b]: 8 blue, 2 red, 2 green.\\n\\nNothing else has changed. Blue is not stronger, faster, or healthier — there is simply more of it.\\n\\n[b]Here is the rule this scenario tests:[/b] a color's chance of eventually taking over is exactly its share at the start.\\n\\n•  Blue starts at [b]67%[/b] → should win about 2 runs in 3\\n•  Red starts at [b]17%[/b] → about 1 run in 6\\n•  Green starts at [b]17%[/b] → about 1 run in 6\\n\\nOne run proves nothing. The results card keeps a [b]tally across every run[/b] — the more you play, the closer the real numbers should creep toward those predictions.\\n\\n[b]So: can an underdog win?[/b]\"
+
+# ---------------------------------------------------------------------------
+#  RESULT WORDING — reframed around the odds
+# ---------------------------------------------------------------------------
+func _end_fixation(color_idx: int):
+	_record_win(color_idx)
+	var c: String = preset_color_names[color_idx]
+	var share: int = _predicted_pct(color_idx)
+	var msg := \"\"
+	if color_idx == 2:
+		msg = \"[b]Blue took over.[/b]\\n\\nThe favourite won — it started with %d%% of the population, so this is the outcome you'd expect most of the time.\\n\\nBlue was never better. It just had more tickets in the draw.\" % share
+	else:
+		msg = \"[b]%s took over — the long shot came in.[/b]\\n\\n%s started as just %d%% of the population and drove both other colors to extinction anyway.\\n\\nThis was always possible; it was simply unlikely. Rare alleles usually disappear, but every so often chance carries one all the way.\" % [c, c, share]
+	_finish(msg)
+
+func _end_timecap(lead: int, counts: Array, total: int):
+	unresolved += 1
+	var c: String = preset_color_names[lead]
+	var pct: int = int(round(float(counts[lead]) / float(total) * 100.0))
+	_finish(\"[b]Time's up — %s leads at %d%%.[/b]\\n\\nNo color has taken over yet, so this run doesn't count toward the tally. Run it again and let one finish.\" % [c, pct])
+
+func _end_extinct():
+	wipeouts += 1
+	_finish(\"[b]The population died out[/b] before any color took over.\\n\\nSmall populations are fragile. This run doesn't count toward the tally — try again.\")
+
+func _record_win(color_idx: int):
+	wins[color_idx] += 1
+
+func _predicted_pct(color_idx: int) -> int:
+	var total := 0
+	for n in MIX:
+		total += int(n)
+	if total == 0:
+		return 0
+	return int(round(float(MIX[color_idx]) / float(total) * 100.0))
+
+# ---------------------------------------------------------------------------
+#  CROSS-RUN TALLY  (the real payoff of this scenario)
+# ---------------------------------------------------------------------------
+func _build_extra_end_content(vb: VBoxContainer):
+	vb.add_child(HSeparator.new())
+
+	var header := Label.new()
+	header.text = \"Across all your runs\"
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.add_theme_font_size_override(\"font_size\", 15)
+	header.add_theme_color_override(\"font_color\", Color(0.62, 0.62, 0.68))
+	vb.add_child(header)
+
+	# column headings
+	var head_row := HBoxContainer.new()
+	head_row.add_theme_constant_override(\"separation\", 10)
+	head_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(head_row)
+	head_row.add_child(_spacer(26))
+	head_row.add_child(_col_label(\"\", 70))
+	head_row.add_child(_col_label(\"Predicted\", 100, Color(0.60, 0.60, 0.68)))
+	head_row.add_child(_col_label(\"Actual\", 150, Color(0.60, 0.60, 0.68)))
+
+	tally_rows.clear()
+	for i in range(3):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override(\"separation\", 10)
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_child(row)
+
+		var swatch := ColorRect.new()
+		swatch.color = preset_color_tints[i]
+		swatch.custom_minimum_size = Vector2(16, 16)
+		var sw_wrap := CenterContainer.new()
+		sw_wrap.custom_minimum_size = Vector2(26, 0)
+		sw_wrap.add_child(swatch)
+		row.add_child(sw_wrap)
+
+		row.add_child(_col_label(preset_color_names[i], 70))
+
+		var pred := _col_label(\"%d%%\" % _predicted_pct(i), 100, Color(0.70, 0.70, 0.78))
+		row.add_child(pred)
+
+		var actual := _col_label(\"—\", 150)
+		row.add_child(actual)
+
+		tally_rows.append(actual)
+
+	tally_footer = Label.new()
+	tally_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tally_footer.add_theme_font_size_override(\"font_size\", 14)
+	tally_footer.add_theme_color_override(\"font_color\", Color(0.58, 0.58, 0.66))
+	vb.add_child(tally_footer)
+
+func _refresh_extra_end_content():
+	var resolved := 0
+	for w in wins:
+		resolved += int(w)
+
+	for i in range(3):
+		if i >= tally_rows.size():
+			continue
+		var lbl: Label = tally_rows[i]
+		if resolved == 0:
+			lbl.text = \"—\"
+			lbl.add_theme_color_override(\"font_color\", Color(0.70, 0.70, 0.78))
+			continue
+		var pct: int = int(round(float(wins[i]) / float(resolved) * 100.0))
+		var word := \"win\" if int(wins[i]) == 1 else \"wins\"
+		lbl.text = \"%d %s  (%d%%)\" % [int(wins[i]), word, pct]
+		# green when observed is close to predicted, neutral otherwise
+		var diff: int = abs(pct - _predicted_pct(i))
+		if resolved >= 5 and diff <= 12:
+			lbl.add_theme_color_override(\"font_color\", Color(0.50, 0.92, 0.55))
+		else:
+			lbl.add_theme_color_override(\"font_color\", Color(0.88, 0.88, 0.92))
+
+	if tally_footer:
+		var extra := \"\"
+		var skipped: int = unresolved + wipeouts
+		if skipped > 0:
+			extra = \"   (%d run%s didn't finish)\" % [skipped, \"\" if skipped == 1 else \"s\"]
+		if resolved == 0:
+			tally_footer.text = \"No completed runs yet.%s\" % extra
+		elif resolved < 5:
+			tally_footer.text = \"%d completed run%s — too few to judge. Keep going.%s\" % [
+				resolved, \"\" if resolved == 1 else \"s\", extra]
+		else:
+			tally_footer.text = \"%d completed runs.%s\" % [resolved, extra]
+
+# --- small layout helpers ---
+func _col_label(text: String, width: float, col: Color = Color(0.88, 0.88, 0.92)) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.custom_minimum_size = Vector2(width, 0)
+	l.add_theme_font_size_override(\"font_size\", 15)
+	l.add_theme_color_override(\"font_color\", col)
+	return l
+
+func _spacer(width: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(width, 0)
+	return c
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_i6g32"]
+size = Vector2(853.5, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1l0tm"]
+size = Vector2(855.5, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v158k"]
+size = Vector2(22.5, 614)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h4fw4"]
+size = Vector2(17, 624)
+
+[node name="Game" type="Node2D" unique_id=1419479712]
+script = SubResource("GDScript_fdgxc")
+blob_scene = ExtResource("2_667t6")
+blob_tex_1 = ExtResource("3_83375")
+blob_tex_2 = ExtResource("4_qs0av")
+blob_tex_3 = ExtResource("5_x83y6")
+eye_tex_1 = ExtResource("6_yjqwh")
+eye_tex_2 = ExtResource("7_y37by")
+metadata/_edit_horizontal_guides_ = [632.0, 648.0]
+metadata/_edit_vertical_guides_ = [854.0]
+
+[node name="DarkLabNoSidelines" type="Sprite2D" parent="." unique_id=1017198556]
+position = Vector2(428, 330)
+scale = Vector2(1, 0.9939394)
+texture = ExtResource("8_pcbvl")
+
+[node name="Walls" type="StaticBody2D" parent="." unique_id=1146561530]
+
+[node name="top" type="CollisionShape2D" parent="Walls" unique_id=445737838]
+position = Vector2(426.25, 7)
+shape = SubResource("RectangleShape2D_i6g32")
+
+[node name="bottom" type="CollisionShape2D" parent="Walls" unique_id=219351536]
+position = Vector2(426.25, 641)
+shape = SubResource("RectangleShape2D_1l0tm")
+
+[node name="left" type="CollisionShape2D" parent="Walls" unique_id=2091962381]
+position = Vector2(10.25, 325)
+shape = SubResource("RectangleShape2D_v158k")
+
+[node name="right" type="CollisionShape2D" parent="Walls" unique_id=624383132]
+position = Vector2(843.5, 324)
+shape = SubResource("RectangleShape2D_h4fw4")
+
+[node name="UIPanel" type="Panel" parent="." unique_id=137937550]
+offset_left = 853.0
+offset_top = 2.0
+offset_right = 1152.0
+offset_bottom = 648.0
+script = ExtResource("9_phesp")
+
+[node name="VBox" type="VBoxContainer" parent="UIPanel" unique_id=561390542]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="HSeparator" type="HSeparator" parent="UIPanel/VBox" unique_id=894261732]
+layout_mode = 2
+
+[node name="TopButtons" type="HBoxContainer" parent="UIPanel/VBox" unique_id=505287309]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BtnStart" type="Button" parent="UIPanel/VBox/TopButtons" unique_id=251246552]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+text = "Start"
+
+[node name="BtnPause" type="Button" parent="UIPanel/VBox/TopButtons" unique_id=1423647688]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+text = "Pause"
+
+[node name="BtnReset" type="Button" parent="UIPanel/VBox/TopButtons" unique_id=1578112190]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+text = "Reset"
+
+[node name="HSeparator4" type="HSeparator" parent="UIPanel/VBox" unique_id=1081976417]
+layout_mode = 2
+
+[node name="SpeedLabel" type="Label" parent="UIPanel/VBox" unique_id=461176342]
+layout_mode = 2
+
+[node name="SpeedSlider" type="HSlider" parent="UIPanel/VBox" unique_id=1287979603]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="UIPanel/VBox" unique_id=308003491]
+layout_mode = 2
+
+[node name="CommandsLabel" type="Label" parent="UIPanel/VBox" unique_id=329199603]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Commands"
+
+[node name="BtnBottleneck" type="Button" parent="UIPanel/VBox" unique_id=720774812]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Bottleneck"
+
+[node name="BtnUnluckyDeath" type="Button" parent="UIPanel/VBox" unique_id=1313128710]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Unlucky Death"
+
+[node name="BtnNaturalDisaster" type="Button" parent="UIPanel/VBox" unique_id=1096508267]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Natural Disaster"
+
+[node name="HSeparator3" type="HSeparator" parent="UIPanel/VBox" unique_id=1898594095]
+layout_mode = 2
+
+[node name="TrackerScroll" type="ScrollContainer" parent="UIPanel/VBox" unique_id=1993418204]
+custom_minimum_size = Vector2(0, 420)
+layout_mode = 2
+localize_numeral_system = false
+
+[node name="TrackerVBox" type="VBoxContainer" parent="UIPanel/VBox/TrackerScroll" unique_id=1883503524]
+layout_mode = 2
+
+[node name="TrackerToggle" type="Button" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=202567195]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "▼ Allele Tracker"
+
+[node name="TrackerContainer" type="VBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=454076404]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ColorLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=491938778]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Color"
+
+[node name="RedBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=390984780]
+layout_mode = 2
+
+[node name="RedFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RedBar" unique_id=530164947]
+layout_mode = 2
+
+[node name="RedPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RedBar" unique_id=2055257431]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="GreenBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=2134459693]
+layout_mode = 2
+
+[node name="GreenFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/GreenBar" unique_id=234069485]
+layout_mode = 2
+
+[node name="GreenPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/GreenBar" unique_id=217299442]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="BlueBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=302560050]
+layout_mode = 2
+
+[node name="BlueFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/BlueBar" unique_id=6705627]
+layout_mode = 2
+
+[node name="BluePct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/BlueBar" unique_id=738618917]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator4" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=229057453]
+layout_mode = 2
+
+[node name="ShapeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1957367628]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Shape"
+
+[node name="RoundBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1629428719]
+layout_mode = 2
+
+[node name="RoundFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RoundBar" unique_id=4687054]
+layout_mode = 2
+
+[node name="RoundPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RoundBar" unique_id=1432405741]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="StarBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=726777829]
+layout_mode = 2
+
+[node name="StarFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/StarBar" unique_id=1238476185]
+layout_mode = 2
+
+[node name="StarPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/StarBar" unique_id=825334408]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="FlowerBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=333088470]
+layout_mode = 2
+
+[node name="FlowerFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/FlowerBar" unique_id=498647731]
+layout_mode = 2
+
+[node name="FlowerPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/FlowerBar" unique_id=401963480]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator5" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1842310085]
+layout_mode = 2
+
+[node name="EyeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1933994516]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Eye Count"
+
+[node name="OneEyeBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1430830357]
+layout_mode = 2
+
+[node name="OneEyeFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/OneEyeBar" unique_id=1287023429]
+layout_mode = 2
+
+[node name="OneEyePct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/OneEyeBar" unique_id=1358077030]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="ThreeEyeBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1019397807]
+layout_mode = 2
+
+[node name="ThreeEyeFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/ThreeEyeBar" unique_id=552172086]
+layout_mode = 2
+
+[node name="ThreeEyePct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/ThreeEyeBar" unique_id=2025663637]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator6" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=1954628599]
+layout_mode = 2
+
+[node name="DeltaToggle" type="Button" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=1274387594]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "▼ Last Event"
+
+[node name="DeltaContainer" type="VBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=1717852418]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DeltaEventLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=844458725]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator7" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1244162339]
+layout_mode = 2
+
+[node name="DeltaColorLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=552720377]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Color"
+
+[node name="RedDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=435453038]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="GreenDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1194519817]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="BlueDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1396604841]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator8" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=656278072]
+layout_mode = 2
+
+[node name="DeltaShapeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1689930724]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Shape"
+
+[node name="RoundDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=358302039]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="StarDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=750785704]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="FlowerDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1914114612]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator9" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=98889514]
+layout_mode = 2
+
+[node name="DeltaEyeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=635854756]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Eye"
+
+[node name="OneEyeDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1965558455]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="ThreeEyeDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1198211852]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="PopLabel" type="Label" parent="." unique_id=794389711]
+offset_left = 30.0
+offset_top = 21.0
+offset_right = 55.0
+offset_bottom = 44.0
+
+[connection signal="pressed" from="UIPanel/VBox/TopButtons/BtnStart" to="UIPanel" method="_on_btn_start_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/TopButtons/BtnPause" to="UIPanel" method="_on_btn_pause_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/TopButtons/BtnReset" to="UIPanel" method="_on_btn_reset_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/BtnBottleneck" to="UIPanel" method="_on_btn_bottleneck_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/BtnUnluckyDeath" to="UIPanel" method="_on_btn_unlucky_death_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/BtnNaturalDisaster" to="UIPanel" method="_on_btn_natural_disaster_pressed"]

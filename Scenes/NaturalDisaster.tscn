@@ -1,0 +1,336 @@
+[gd_scene format=3 uid="uid://cvpnqqv4xx7qi"]
+
+[ext_resource type="PackedScene" uid="uid://bbn3al2ubo6ed" path="res://Scenes/blob.tscn" id="2_fqymf"]
+[ext_resource type="Texture2D" uid="uid://breyi4wym17pe" path="res://Graphics/Blobs/blob 1.png" id="3_0jo0a"]
+[ext_resource type="Texture2D" uid="uid://bdj3pvgdx37ss" path="res://Graphics/Blobs/blob 2.png" id="4_gp8nc"]
+[ext_resource type="Texture2D" uid="uid://froqy6mdua7m" path="res://Graphics/Blobs/blob 3.png" id="5_p37p3"]
+[ext_resource type="Texture2D" uid="uid://d084upj346f50" path="res://Graphics/Blobs/Eye.png" id="6_0vh2u"]
+[ext_resource type="Texture2D" uid="uid://eppjgnfo1pcs" path="res://Graphics/Blobs/Eye2.png" id="7_ja605"]
+[ext_resource type="Script" uid="uid://hysqvv34gaka" path="res://Scripts/natural_disaster.gd" id="8_hwh14"]
+[ext_resource type="Texture2D" uid="uid://vka8irw2uvdt" path="res://Graphics/Background/dark_lab_no_sidelines.svg" id="8_qem7h"]
+[ext_resource type="Script" uid="uid://cuja8jbwafrwf" path="res://Scripts/ui.gd" id="9_83sl3"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_i6g32"]
+size = Vector2(853.5, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1l0tm"]
+size = Vector2(855.5, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v158k"]
+size = Vector2(22.5, 614)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h4fw4"]
+size = Vector2(17, 624)
+
+[node name="Game" type="Node2D" unique_id=1419479712]
+script = ExtResource("8_hwh14")
+blob_scene = ExtResource("2_fqymf")
+blob_tex_1 = ExtResource("3_0jo0a")
+blob_tex_2 = ExtResource("4_gp8nc")
+blob_tex_3 = ExtResource("5_p37p3")
+eye_tex_1 = ExtResource("6_0vh2u")
+eye_tex_2 = ExtResource("7_ja605")
+metadata/_edit_horizontal_guides_ = [632.0, 648.0]
+metadata/_edit_vertical_guides_ = [854.0]
+
+[node name="DarkLabNoSidelines" type="Sprite2D" parent="." unique_id=1017198556]
+position = Vector2(428, 330)
+scale = Vector2(1, 0.9939394)
+texture = ExtResource("8_qem7h")
+
+[node name="Walls" type="StaticBody2D" parent="." unique_id=1146561530]
+
+[node name="top" type="CollisionShape2D" parent="Walls" unique_id=445737838]
+position = Vector2(426.25, 7)
+shape = SubResource("RectangleShape2D_i6g32")
+
+[node name="bottom" type="CollisionShape2D" parent="Walls" unique_id=219351536]
+position = Vector2(426.25, 641)
+shape = SubResource("RectangleShape2D_1l0tm")
+
+[node name="left" type="CollisionShape2D" parent="Walls" unique_id=2091962381]
+position = Vector2(10.25, 325)
+shape = SubResource("RectangleShape2D_v158k")
+
+[node name="right" type="CollisionShape2D" parent="Walls" unique_id=624383132]
+position = Vector2(843.5, 324)
+shape = SubResource("RectangleShape2D_h4fw4")
+
+[node name="UIPanel" type="Panel" parent="." unique_id=137937550]
+offset_left = 853.0
+offset_top = 2.0
+offset_right = 1152.0
+offset_bottom = 648.0
+script = ExtResource("9_83sl3")
+
+[node name="VBox" type="VBoxContainer" parent="UIPanel" unique_id=561390542]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="HSeparator" type="HSeparator" parent="UIPanel/VBox" unique_id=894261732]
+layout_mode = 2
+
+[node name="TopButtons" type="HBoxContainer" parent="UIPanel/VBox" unique_id=505287309]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BtnStart" type="Button" parent="UIPanel/VBox/TopButtons" unique_id=251246552]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+text = "Start"
+
+[node name="BtnPause" type="Button" parent="UIPanel/VBox/TopButtons" unique_id=1423647688]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+text = "Pause"
+
+[node name="BtnReset" type="Button" parent="UIPanel/VBox/TopButtons" unique_id=1578112190]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+text = "Reset"
+
+[node name="HSeparator4" type="HSeparator" parent="UIPanel/VBox" unique_id=1081976417]
+layout_mode = 2
+
+[node name="SpeedLabel" type="Label" parent="UIPanel/VBox" unique_id=461176342]
+layout_mode = 2
+
+[node name="SpeedSlider" type="HSlider" parent="UIPanel/VBox" unique_id=1287979603]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="UIPanel/VBox" unique_id=308003491]
+layout_mode = 2
+
+[node name="CommandsLabel" type="Label" parent="UIPanel/VBox" unique_id=329199603]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Commands"
+
+[node name="BtnBottleneck" type="Button" parent="UIPanel/VBox" unique_id=720774812]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Bottleneck"
+
+[node name="BtnUnluckyDeath" type="Button" parent="UIPanel/VBox" unique_id=1313128710]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Unlucky Death"
+
+[node name="BtnNaturalDisaster" type="Button" parent="UIPanel/VBox" unique_id=1096508267]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Natural Disaster"
+
+[node name="HSeparator3" type="HSeparator" parent="UIPanel/VBox" unique_id=1898594095]
+layout_mode = 2
+
+[node name="TrackerScroll" type="ScrollContainer" parent="UIPanel/VBox" unique_id=1993418204]
+custom_minimum_size = Vector2(0, 420)
+layout_mode = 2
+localize_numeral_system = false
+
+[node name="TrackerVBox" type="VBoxContainer" parent="UIPanel/VBox/TrackerScroll" unique_id=1883503524]
+layout_mode = 2
+
+[node name="TrackerToggle" type="Button" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=202567195]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "▼ Allele Tracker"
+
+[node name="TrackerContainer" type="VBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=454076404]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ColorLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=491938778]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Color"
+
+[node name="RedBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=390984780]
+layout_mode = 2
+
+[node name="RedFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RedBar" unique_id=530164947]
+layout_mode = 2
+
+[node name="RedPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RedBar" unique_id=2055257431]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="GreenBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=2134459693]
+layout_mode = 2
+
+[node name="GreenFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/GreenBar" unique_id=234069485]
+layout_mode = 2
+
+[node name="GreenPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/GreenBar" unique_id=217299442]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="BlueBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=302560050]
+layout_mode = 2
+
+[node name="BlueFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/BlueBar" unique_id=6705627]
+layout_mode = 2
+
+[node name="BluePct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/BlueBar" unique_id=738618917]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator4" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=229057453]
+layout_mode = 2
+
+[node name="ShapeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1957367628]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Shape"
+
+[node name="RoundBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1629428719]
+layout_mode = 2
+
+[node name="RoundFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RoundBar" unique_id=4687054]
+layout_mode = 2
+
+[node name="RoundPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/RoundBar" unique_id=1432405741]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="StarBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=726777829]
+layout_mode = 2
+
+[node name="StarFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/StarBar" unique_id=1238476185]
+layout_mode = 2
+
+[node name="StarPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/StarBar" unique_id=825334408]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="FlowerBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=333088470]
+layout_mode = 2
+
+[node name="FlowerFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/FlowerBar" unique_id=498647731]
+layout_mode = 2
+
+[node name="FlowerPct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/FlowerBar" unique_id=401963480]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator5" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1842310085]
+layout_mode = 2
+
+[node name="EyeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1933994516]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Eye Count"
+
+[node name="OneEyeBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1430830357]
+layout_mode = 2
+
+[node name="OneEyeFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/OneEyeBar" unique_id=1287023429]
+layout_mode = 2
+
+[node name="OneEyePct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/OneEyeBar" unique_id=1358077030]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="ThreeEyeBar" type="HBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer" unique_id=1019397807]
+layout_mode = 2
+
+[node name="ThreeEyeFill" type="ColorRect" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/ThreeEyeBar" unique_id=552172086]
+layout_mode = 2
+
+[node name="ThreeEyePct" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/ThreeEyeBar" unique_id=2025663637]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator6" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=1954628599]
+layout_mode = 2
+
+[node name="DeltaToggle" type="Button" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=1274387594]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "▼ Last Event"
+
+[node name="DeltaContainer" type="VBoxContainer" parent="UIPanel/VBox/TrackerScroll/TrackerVBox" unique_id=1717852418]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DeltaEventLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=844458725]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator7" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1244162339]
+layout_mode = 2
+
+[node name="DeltaColorLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=552720377]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Color"
+
+[node name="RedDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=435453038]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="GreenDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1194519817]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="BlueDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1396604841]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator8" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=656278072]
+layout_mode = 2
+
+[node name="DeltaShapeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1689930724]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Shape"
+
+[node name="RoundDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=358302039]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="StarDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=750785704]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="FlowerDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1914114612]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="HSeparator9" type="HSeparator" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=98889514]
+layout_mode = 2
+
+[node name="DeltaEyeLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=635854756]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Eye"
+
+[node name="OneEyeDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1965558455]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="ThreeEyeDeltaLabel" type="Label" parent="UIPanel/VBox/TrackerScroll/TrackerVBox/DeltaContainer" unique_id=1198211852]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+
+[node name="PopLabel" type="Label" parent="." unique_id=794389711]
+offset_left = 30.0
+offset_top = 21.0
+offset_right = 55.0
+offset_bottom = 44.0
+
+[connection signal="pressed" from="UIPanel/VBox/TopButtons/BtnStart" to="UIPanel" method="_on_btn_start_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/TopButtons/BtnPause" to="UIPanel" method="_on_btn_pause_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/TopButtons/BtnReset" to="UIPanel" method="_on_btn_reset_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/BtnBottleneck" to="UIPanel" method="_on_btn_bottleneck_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/BtnUnluckyDeath" to="UIPanel" method="_on_btn_unlucky_death_pressed"]
+[connection signal="pressed" from="UIPanel/VBox/BtnNaturalDisaster" to="UIPanel" method="_on_btn_natural_disaster_pressed"]

@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bldvatmbr4c51"]
+
+[ext_resource type="Script" uid="uid://c1rn43tpne6vv" path="res://Scripts/events_menu.gd" id="1_mmlcd"]
+
+[node name="EventsMenu" type="Control" unique_id=1489730008]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_mmlcd")
