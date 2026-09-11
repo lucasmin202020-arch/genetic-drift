@@ -1,7 +1,7 @@
 extends DriftEvent
 
 # ===========================================================================
-#  EVENT: ONE UNLUCKY DEATH
+#  EVENT: ONE UNLUCKY DEATH  (v1.1)
 #
 #  One random blob dies, and one random survivor immediately has a child.
 #  The population never changes size; only its colour mix does. Press it
@@ -15,6 +15,10 @@ extends DriftEvent
 #    - The pen starts at its cap, so ordinary births are blocked.
 #  Between two presses, nothing changes. Every movement on the graph is one
 #  press. That is the whole design.
+#
+#  INTRO TEXT LAYOUT (v1.1)
+#  The start screen is three labelled sections: THE SCIENCE (sourced),
+#  HOW THIS SIMULATION WORKS (mechanics, flagged as not-biology), WHAT TO DO.
 #
 #  SETUP:
 #    1. Open Game.tscn -> Scene -> "Save Scene As..." -> UnluckyDeath.tscn
@@ -48,7 +52,29 @@ func _preset_title() -> String:
 	return "One Unlucky Death"
 
 func _preset_intro_bbcode() -> String:
-	return "Twelve blobs — [b]4 red, 4 green, 4 blue[/b] — and the pen is full, so no ordinary births can happen. Nobody ages, either. Left alone, this population sits unchanged forever.\n\nThe button does one thing in two halves:\n\n•  One blob, chosen [b]completely at random[/b], dies.\n•  One survivor, also chosen at random, immediately has a child.\n\nThe population is back to twelve straight away. The only thing that changed is [b]which colors those twelve are[/b].\n\nThat paired step is the smallest unit of genetic drift there is, and it's what biologists actually write down when they model it. One press = one generation.\n\nA blue blob is exactly as likely to die as a red one, and exactly as likely to be the parent. Nothing favours any color."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "In every generation, some individuals leave more descendants than others purely by chance — one gets eaten before it breeds, another happens to have an extra litter. None of that has to do with which alleles they carry. Over many generations these accidents accumulate, and the frequency of each allele wanders up and down. That wandering is [b]genetic drift[/b], and it is one of the basic mechanisms of evolution alongside natural selection, mutation, and migration.\n\n"
+		+ "Drift is much stronger in small populations. If one individual in a population of 10 dies without offspring, a tenth of the gene pool is gone in a single step. In a population of 100, that same death removes only one percent, so a large population is buffered against chance in a way a small one is not.\n\n"
+		+ "Drift has two possible endings for any allele. It can rise to 100% of the population, which is called [b]fixation[/b], or it can fall to 0% and be lost. Once an allele is lost it cannot return without mutation or migration, because offspring can only inherit alleles their parents still carry. Drift does not care which alleles are useful; it can fix a harmful one or eliminate a beneficial one.\n\n"
+		+ "Population geneticists study this with a deliberately stripped-down model. In the [b]Moran model[/b] (P. A. P. Moran, 1958), a population of fixed size changes by exactly one event at a time: one individual chosen at random dies, and one individual chosen at random reproduces to replace it. Nothing else happens. Under this model, an allele's probability of eventually taking over the whole population is simply its current share — an allele at 25% has a one-in-four chance of winning, and it will win or be lost eventually, never settle in between. This scenario is the Moran model, one step per button press.\n\n"
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Moran, P. A. P. (1958), \"Random processes in genetics\", Mathematical Proceedings of the Cambridge Philosophical Society 54(1).[/i]\n\n"
+	) + _howto_bbcode()
+
+# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
+# pause popup opened by the help button that DriftPreset puts in the panel.
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "The pen holds 12 blobs, 4 of each color, and that is also its cap, so no ordinary births can occur. Ageing is switched off, so nobody dies on their own. Left alone, nothing changes. Each press of the button does two things in order: one blob chosen at random dies, then one of the survivors, also chosen at random, has a child of its own color next to it. The population is back at 12 immediately; only the color mix has moved. Every blob has the same chance of being the one that dies and the same chance of being the parent. Auto-step presses the button for you about twice a second. The run ends when only one color is left, and the results card tallies how many deaths and births each color got.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  Press the button ten times, one at a time, watching the graph after each press.\n"
+		+ "2.  Write down which color you think will win, and how many more presses it will take.\n"
+		+ "3.  Turn on Auto-step and let it run to fixation. Check your prediction.\n"
+		+ "4.  Run it three times. Note the winner and the number of steps each time.\n"
+		+ "5.  On the results card, compare deaths and births by color. Ask whether the winner actually got a better deal, or just a luckier one."
+	)
 
 func _preset_questions() -> Array:
 	return [

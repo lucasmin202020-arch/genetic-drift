@@ -1,28 +1,25 @@
 extends DriftEvent
 
 # ===========================================================================
-#  EVENT: NATURAL DISASTER  (v2)
+#  EVENT: NATURAL DISASTER  (v2.1)
 #
 #  A zone of the lab is wiped out. The zone is blind to colour — but blobs
 #  are born next to their parents, so colours clump by accident, and a zone
 #  that selects on LOCATION therefore selects on colour anyway. Drift, not
 #  selection: the reds that died weren't worse, they were standing there.
 #
-#  WHAT CHANGED FROM v1
-#  --------------------
-#  v1 was one strike and then the run ended. One strike teaches almost
-#  nothing, because a single result could be anything. The point only lands
-#  across SEVERAL strikes: some hit an even mix and barely move the numbers,
-#  some land on a clump and gut a colour — and the same-sized zone did both.
-#
-#  So the disaster now REPEATS. Strike, the survivors breed back to size,
-#  the button re-arms, strike again. Finish whenever you like. Every strike
-#  is logged and marked on the graph. Three other additions:
+#  The disaster REPEATS. Strike, the survivors breed back to size, the
+#  button re-arms, strike again. Finish whenever you like. Every strike is
+#  logged and marked on the graph.
 #
 #    - a ZONE SIZE slider (small / medium / large), so severity is a variable
 #    - while you're aiming, every blob inside the zone gets a RING, so you
 #      can see exactly who is about to die, not just a count
 #    - right-click cancels an armed zone
+#
+#  INTRO TEXT LAYOUT (v2.1)
+#  The start screen is three labelled sections: THE SCIENCE (sourced),
+#  HOW THIS SIMULATION WORKS (mechanics, flagged as not-biology), WHAT TO DO.
 #
 #  SETUP:
 #    1. Open Game.tscn -> Scene -> "Save Scene As..." -> NaturalDisaster.tscn
@@ -110,7 +107,28 @@ func _preset_title() -> String:
 	return "Natural Disaster"
 
 func _preset_intro_bbcode() -> String:
-	return "Twenty-four blobs, evenly split, wandering freely. A disaster hits one region of the lab and everything inside it dies. Then the survivors breed back to twenty-four — and you can strike again.\n\nThe disaster is [b]completely blind to color[/b]. It only knows [b]where[/b].\n\nBut blobs are born next to their parents, so colors quietly end up [b]clumped[/b]. Nobody arranged that. It just happens. A disaster that only cares about location still hits the colors unevenly.\n\n[b]You aim it.[/b] Press Arm, move the zone around the lab, and every blob inside it gets a ring — that's who dies if you click. The readout tells you the count by color. Right-click to cancel.\n\nOne strike proves nothing. Fire several. Some will land on an even mix and barely move the numbers. Some will land on a clump."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "Genetic drift is driven by [b]sampling error[/b]: in every generation, which individuals happen to survive and reproduce is partly a matter of chance, and those accidents change allele frequencies with no regard to which alleles are better. A natural disaster that kills a large share of a population at random is the classic textbook trigger. A fire, flood, or eruption does not distinguish between genotypes, so no genotype survives it better than any other — and yet the survivors' allele frequencies can end up very different from the original population's.\n\n"
+		+ "Textbooks usually treat a disaster as a whole-population bottleneck. This scenario looks at something subtler. Real disasters are [i]local[/i]: they hit a place, not a genotype. And individuals are almost never spread evenly through a habitat. Offspring tend to live near their parents, so relatives — and the alleles they share — cluster in space. A disaster that only cares about [b]where[/b] you are will therefore remove alleles unevenly, purely because of that clustering.\n\n"
+		+ "This is still drift, not natural selection. Selection requires that an allele changes an individual's own chance of surviving or reproducing. Being in the wrong place when the disaster hits is not a heritable trait, so the alleles that are lost are lost by chance. That is the definition of drift. When biologists say drift is \"random\", they mean random with respect to genotype — not that every individual in a habitat faces exactly the same risk.\n\n"
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\" and \"Bottlenecks and founder effects\"; OpenStax, Biology for AP Courses §19.2 Population Genetics; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics).[/i]\n\n"
+	) + _howto_bbcode()
+
+# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
+# pause popup opened by the help button that DriftPreset puts in the panel.
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "The pen holds 24 blobs, 8 of each color, moving freely. Because offspring are born next to their parents, colors end up clumped without anyone arranging it. The slider sets the disaster zone size: small, medium, or large. Pressing Arm turns the zone on; it follows your cursor, every blob inside it gets a ring, and the readout counts what is inside by color. Left-click to strike: every ringed blob dies. Right-click to cancel without firing. After a strike the survivors breed the pen back to 24, the button re-arms, and you can strike again. Each strike is logged and marked on the graph; the results card totals the kills by color across the whole run.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  Before arming, look at the pen. Are the colors evenly spread or clumped?\n"
+		+ "2.  Press Arm and move the zone around without firing. Watch the count by color change as you move.\n"
+		+ "3.  Strike a spot where one color is concentrated. Watch the bars during recovery.\n"
+		+ "4.  When it re-arms, strike a spot with an even mix. Compare the two results in the log.\n"
+		+ "5.  Fire at least four strikes in one run, then read the results card. Try a run with only Large strikes, then one with only Small."
+	)
 
 func _preset_questions() -> Array:
 	return [

@@ -42,6 +42,10 @@ class_name MultiPen
 #     It turned out to be the clearest read in the whole lab, so it's the
 #     default here: one bar along the bottom inside edge of every pen, with
 #     each colour's width equal to its share of that pen.
+#
+#  NOTE ON _set_gated_visible: this class replaces the base version rather
+#  than extending it (the base would re-show the tracker). That means it has
+#  to show the help button itself — see the line marked HELP BUTTON below.
 # ===========================================================================
 
 # --- SUBCLASS CONFIG ---
@@ -225,6 +229,8 @@ func _set_gated_visible(vis: bool):
 		if n:
 			n.visible = false
 	_hide_playground_only_controls()
+	if help_button:                 # HELP BUTTON — base isn't called, so show it here
+		help_button.visible = vis
 	if caption_box:
 		caption_box.visible = vis
 	for n in ui_nodes:

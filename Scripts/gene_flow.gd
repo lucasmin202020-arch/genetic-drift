@@ -340,7 +340,26 @@ func _preset_title() -> String:
 	return "Gene Flow"
 
 func _preset_intro_bbcode() -> String:
-	return "Two populations of 15 blobs, side by side, starting from exactly the same mix — 5 red, 5 green, 5 blue each.\n\nBetween them is a solid divide with one [b]gate[/b] in it, and it doesn't stay in one state:\n\n[b]Sealed.[/b] The gate starts shut. The two populations drift completely independently, and they'll start to look different from each other.\n\n[b]Connected.[/b] Every so often the gate swings open and blobs can wander across. A blob that crosses joins the population it lands in and breeds there. That trickle of movement is called [b]gene flow[/b].\n\nThe gate opens for the first time [b]15 seconds in[/b], then keeps cycling open and shut for the rest of the run.\n\n[b]The graph[/b] shows how different the two pens are right now, and shades the background green for every stretch where the gate was open."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "[b]Gene flow[/b] is the movement of alleles between populations. It happens whenever an individual — or a seed, or pollen, or a spore — travels from one population to another and breeds there, carrying its alleles with it. It is one of the four basic mechanisms that change allele frequencies, alongside mutation, natural selection, and genetic drift.\n\n"
+		+ "Gene flow and drift push in opposite directions. Drift makes isolated populations [i]diverge[/i]: each one wanders on its own random path, and over time their allele frequencies drift apart even though nothing about their environments differs. Gene flow makes connected populations [i]converge[/i]: every migrant carries a sample of one population's alleles into the other, so any difference that has built up gets mixed back down. The two populations effectively stop being separate experiments and start behaving like one larger population.\n\n"
+		+ "What surprises most people is how little migration it takes. A classic result from population genetics, first derived by Sewall Wright in 1931, is that roughly [b]one successful migrant per generation[/b] is enough to prevent two populations from diverging much by drift, regardless of how large they are. Isolation has to be nearly complete before drift can pull populations genuinely apart. This is why geographic barriers — oceans, mountain ranges, deserts, and increasingly roads and cities — matter so much for how species split: they are what cuts the flow.\n\n"
+		+ "The same principle is used deliberately in conservation. In 1995, eight female pumas from Texas were released into the Florida panther population, which had shrunk to a few dozen inbred animals with severe genetic defects. The introduced animals bred, restored lost alleles, and the population's health and numbers recovered — a case of gene flow being engineered on purpose to reverse the effects of drift.\n\n"
+		+ "[i]Sources: Khan Academy, \"Genetic drift\" and \"Mechanisms of evolution\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Gene flow\"; Wright, S. (1931), \"Evolution in Mendelian populations\", Genetics 16(2): 97–159; Johnson, W. E. et al. (2010), \"Genetic restoration of the Florida panther\", Science 329(5999): 1641–1645.[/i]\n\n"
+	) + _howto_bbcode()
+
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "Two equal pens, West and East, each start with 15 blobs — 5 of each color — and each can hold up to 20. Color does nothing. Between the pens is a gap with a gate in the middle. For the first 15 seconds the gate is sealed and the pens are fully isolated. After that it cycles on a timer: open for 15 seconds, then shut for 16, and so on until the run ends. A blob belongs to whichever pen it is physically standing in, so a blob that wanders through the open gate joins the other population and breeds there; every such crossing is counted. The side panel shows each pen's mix, the gate's state, and a single number — how different the two pens are, from 0% (identical mixes) to 100% (no colors in common). The graph below it plots that number over time, shading the background green while the gate is open and red while it is shut. The run ends when time runs out.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  During the first sealed stretch, watch the difference line. Write down what it does.\n"
+		+ "2.  When the gate label turns to OPEN, watch the gate itself for blobs crossing, and watch what the difference line does inside the green band.\n"
+		+ "3.  During the next shut stretch, watch whether the line climbs again.\n"
+		+ "4.  At the end, compare \"Most different\" to \"Different at the end\" on the results card, and note how few crossings it took."
+	)
 
 func _preset_questions() -> Array:
 	return [

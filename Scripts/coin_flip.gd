@@ -19,13 +19,25 @@ class_name DriftPreset
 #     p_speed_index    0..4 -> 0.25x .. 1.25x
 #
 #     _preset_title()             card + intro heading
-#     _preset_intro_bbcode()      intro card body text
+#     _preset_intro_bbcode()      intro card body text — THE SCIENCE section,
+#                                 which should end by appending _howto_bbcode()
+#     _howto_bbcode()             HOW THIS SIMULATION WORKS + WHAT TO DO. Shown
+#                                 at the end of the intro AND on demand from the
+#                                 help button in the side panel, which pauses
+#                                 the whole sim while it's open.
 #     _preset_questions()         the three PREDICT FIRST questions
 #     _build_extra_end_content()  extra widgets on the results card
 #     _refresh_extra_end_content()refresh them when a run finishes
 #     _end_fixation/_end_timecap/_end_extinct   result wording
 #     _menu_scene_path()          where the back/exit buttons go
 #     _menu_button_text()         what the exit button is called
+#
+#  HELP BUTTON
+#  -----------
+#  A standalone amber "?  What do I do?" button sits in the side panel between
+#  the speed slider and whatever controls the scenario adds. It's built here
+#  once, so every preset and every event has it without any per-file work.
+#  It opens HowToPopup (res://Scripts/howto_popup.gd) with _howto_bbcode().
 #
 #  SETUP:
 #    1. Open Game.tscn -> Scene -> "Save Scene As..." -> CoinFlip.tscn
@@ -67,6 +79,11 @@ const CARD_VERTICAL_MARGIN := 90.0
 # --- PREDICT-FIRST PANEL COLORS ---
 const PREDICT_ACCENT := Color(0.95, 0.78, 0.38)
 
+# --- HELP BUTTON ---
+# Same amber as the PREDICT FIRST block, so "instructions" always look the
+# same wherever they appear, and never the blue of Begin or the red of Fire.
+const HELP_ACCENT := PREDICT_ACCENT
+
 # --- PRESET STATE ---
 var ended: bool = false
 var lost_announced: Array[bool] = [false, false, false]
@@ -86,6 +103,7 @@ var intro_card: Control
 var end_card: Control
 var end_text: RichTextLabel
 var compare_box: VBoxContainer
+var help_button: Button
 var card_scrolls: Array = []     # [{ "scroll": ScrollContainer, "vb": VBoxContainer }]
 
 var preset_color_names: Array[String] = ["Red", "Green", "Blue"]
@@ -203,7 +221,30 @@ func _preset_title() -> String:
 	return "Randomness: The Basis of Genetic Drift"
 
 func _preset_intro_bbcode() -> String:
-	return "A tiny population — [b]4 red, 4 green, 4 blue[/b], and never more than 16 alive at once.\n\nEvery blob is the same shape with the same eyes. The only difference is color, and color does nothing: no color lives longer, and none reproduces faster.\n\n[b]Watch for two things:[/b]\n•  The first few seconds are a [b]growing-up phase[/b] — blobs are born small and can't reproduce until they mature. The graph shades this period.\n•  After that, the [b]frequency graph[/b] traces each color over time. Nothing pushes those lines. They wander on their own."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "Every individual in a population carries [b]alleles[/b] — alternative versions of a gene. The fraction of the population carrying a particular allele is its [b]allele frequency[/b], and evolution, at its most basic, is a change in allele frequencies over time.\n\n"
+		+ "Natural selection is one way frequencies change: an allele that helps its carrier survive or reproduce becomes more common. But it is not the only way. In every generation, some individuals happen to leave more offspring than others for reasons that have nothing to do with their genes — one is eaten before breeding, another gets lucky and has an extra litter. The next generation is therefore a [i]random sample[/i] of the alleles in the current one, and a random sample never perfectly matches what it was drawn from. This sampling error, accumulating generation after generation, is [b]genetic drift[/b].\n\n"
+		+ "Drift happens in every population that is not infinitely large, but its strength depends on population size. If one individual in a population of 10 dies without offspring, a tenth of the gene pool is gone in a single step; in a population of 100, the same death removes only one percent. Small populations therefore lurch; large ones are buffered.\n\n"
+		+ "Left running long enough, drift has only two endings for any allele. Either it reaches 100% — called [b]fixation[/b] — or it drops to 0% and is lost. Once an allele is lost it cannot return unless mutation recreates it or migration brings it back. Drift does not care whether an allele is useful: it can fix a harmful one or throw away a beneficial one, because nothing about the allele is steering the outcome.\n\n"
+		+ "One important consequence: an allele does not have to be better to take over. For a neutral allele — one with no effect on survival or reproduction — its chance of eventually reaching fixation is simply its current frequency. Three equally common colors each have a one-in-three chance of winning, and one of them always does.\n\n"
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); OpenStax, Biology for AP Courses §19.2 Population Genetics.[/i]\n\n"
+	) + _howto_bbcode()
+
+# Shown at the end of the intro card and, on demand, in the pause popup opened
+# by the help button. Every subclass should override this with its own
+# mechanics and procedure; this default is Lesson 1's.
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "The pen starts with 12 blobs, 4 of each color, and never holds more than 16. Every blob has the same shape and the same eyes; color is the only difference and it does nothing — no color lives longer or breeds faster. Blobs are born small and cannot reproduce until they mature; the graph shades that growing-up period. After that, whenever two adult blobs meet there is a chance they produce a child, and the child inherits one parent's color at random. Blobs also die of old age at random times. The graph traces each color's share of the population over time. The run ends when one color is the only one left, or when time runs out.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  Before pressing Begin, pick the color you think will win and write it down.\n"
+		+ "2.  Watch the graph. Note the first time any color drops below 20%.\n"
+		+ "3.  When a color disappears, watch whether it ever comes back. (It can't — ask yourself why.)\n"
+		+ "4.  Run it at least three times. Keep a tally of which color won each time."
+	)
 
 # THREE QUESTIONS THE USER SHOULD ANSWER BEFORE PRESSING BEGIN.
 # Every preset overrides this. Prediction before observation is the whole
@@ -246,6 +287,7 @@ func _ready():
 	_hide_playground_only_controls()
 	_declutter_tracker()
 	_enlarge_chart()
+	_build_help_button()
 	_build_graph()
 	_build_caption_box()
 	_build_preset_overlays()
@@ -274,6 +316,8 @@ func _hide_playground_only_controls():
 func _set_gated_visible(vis: bool):
 	super._set_gated_visible(vis)
 	_hide_playground_only_controls()
+	if help_button:
+		help_button.visible = vis
 	if caption_box:
 		caption_box.visible = vis
 	if graph:
@@ -338,6 +382,79 @@ func _fit_tracker_height():
 func _on_back_to_menu():
 	Engine.time_scale = 1.0
 	get_tree().change_scene_to_file(_menu_scene_path())
+
+# ---------------------------------------------------------------------------
+#  HELP BUTTON — shares the header row with "← Menu". The side panel's VBox
+#  has no spare height (the caption box already sits at the bottom edge), so
+#  the button borrows width from the back button instead of taking a row of
+#  its own. game.gd puts the back button at index 0; it gets reparented into
+#  an HBox here, with the help button on its right.
+# ---------------------------------------------------------------------------
+func _build_help_button():
+	var vbox = get_node_or_null("UIPanel/VBox")
+	if not vbox:
+		return
+
+	help_button = Button.new()
+	help_button.name = "HelpButton"
+	help_button.text = "?  Help"
+	help_button.tooltip_text = "Pause the sim and re-read how this scenario works and what to do."
+	help_button.custom_minimum_size = Vector2(112, 0)
+	help_button.add_theme_font_size_override("font_size", 16)
+
+	# Outlined amber pill: clearly not a sim control, clearly "instructions".
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.12)
+	normal.border_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.90)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(8)
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 4
+	normal.content_margin_bottom = 4
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.25)
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.35)
+
+	help_button.add_theme_stylebox_override("normal", normal)
+	help_button.add_theme_stylebox_override("hover", hover)
+	help_button.add_theme_stylebox_override("pressed", pressed)
+	help_button.add_theme_stylebox_override("focus", normal)
+	help_button.add_theme_color_override("font_color", HELP_ACCENT)
+	help_button.add_theme_color_override("font_hover_color", HELP_ACCENT.lightened(0.15))
+	help_button.add_theme_color_override("font_pressed_color", HELP_ACCENT)
+	help_button.add_theme_color_override("font_focus_color", HELP_ACCENT)
+	help_button.visible = false
+	help_button.pressed.connect(_on_help_pressed)
+
+	# Find the back button game.gd made, and put it and the help button in
+	# one row at the same index, so the rest of the panel doesn't shift.
+	var back: Button = null
+	for ch in vbox.get_children():
+		if ch is Button and str(ch.text).begins_with("←"):
+			back = ch
+			break
+
+	var row := HBoxContainer.new()
+	row.name = "HeaderRow"
+	row.add_theme_constant_override("separation", 8)
+
+	if back:
+		var idx: int = back.get_index()
+		vbox.remove_child(back)
+		vbox.add_child(row)
+		vbox.move_child(row, idx)
+		back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(back)
+	else:
+		vbox.add_child(row)
+		vbox.move_child(row, 0)
+
+	row.add_child(help_button)
+
+func _on_help_pressed():
+	HowToPopup.open(self, _preset_title(), _howto_bbcode())
 
 # ---------------------------------------------------------------------------
 #  SIDE-PANEL ADDITIONS

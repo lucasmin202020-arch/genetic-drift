@@ -1,7 +1,7 @@
 extends DriftEvent
 
 # ===========================================================================
-#  EVENT: FOUNDER EFFECT  (v2.1)
+#  EVENT: FOUNDER EFFECT  (v2.2)
 #
 #  A founder event and a bottleneck produce populations that look identical.
 #  The one thing that distinguishes them: in a founding event THE ORIGINAL
@@ -23,6 +23,10 @@ extends DriftEvent
 #
 #  This is the one event that stays single-shot (REPEAT_NONE). A second wave
 #  of founders would be migration, which is Gene Flow's lesson, not this one.
+#
+#  INTRO TEXT LAYOUT (v2.2)
+#  The start screen is three labelled sections: THE SCIENCE (sourced),
+#  HOW THIS SIMULATION WORKS (mechanics, flagged as not-biology), WHAT TO DO.
 #
 #  SETUP:
 #    1. Open Game.tscn -> Scene -> "Save Scene As..." -> FounderEffect.tscn
@@ -320,7 +324,29 @@ func _preset_title() -> String:
 	return "Founder Effect"
 
 func _preset_intro_bbcode() -> String:
-	return "The lab is split into two places: a [b]mainland[/b] holding up to 24 blobs, and an [b]island[/b] that starts completely empty.\n\nThe mainland fills up with an even mix. Then a few blobs cross to the island and start a new population there.\n\n[b]Nobody dies.[/b] This is the difference between a founding event and a bottleneck: the original population is still there, carrying on exactly as before. It's your control group, running live next to the new one for the rest of the run.\n\nThe founders are picked [b]at random[/b] — you choose how many, never which. Picking them yourself would be selection, and this lab doesn't do selection.\n\nWatch the two bars along the bottom of the pens the instant the founders land. The mainland will read about a third each. The island will read something else — and it won't have drifted at all yet."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "The [b]founder effect[/b] is the second extreme case of genetic drift. A bottleneck cuts a population down where it stands; a founder event happens when a small group [i]leaves[/i] a large population and starts a new, isolated one somewhere else — a few birds blown to an island, a handful of settlers crossing an ocean, a population split in two by a new river.\n\n"
+		+ "The founders are a small sample of the source population, and a small sample is rarely representative. Their allele frequencies can differ from the source's just by chance, and some alleles may be missing from the sample entirely. Whatever the founders happen to carry becomes the entire gene pool of the new colony. An allele that no founder brought can never appear in the colony unless mutation creates it or later migration brings it in.\n\n"
+		+ "The key difference from a bottleneck is [b]colonization versus catastrophe[/b]. Nobody has to die. The source population is still there, unchanged, which is what makes a founder event so clear to study: the new population can be compared directly with the one it came from.\n\n"
+		+ "Real cases: the Afrikaner population of South Africa descends from a small number of Dutch settlers and has an unusually high rate of Huntington's disease, because a higher-than-normal share of the original colonists happened to carry that allele. Similarly, the Amish of Lancaster County, Pennsylvania, were founded by a small group, and a rare allele that causes extra fingers and toes (polydactyly) is far more common among them than in the wider population. Nothing about either place favoured those alleles. They were simply over-represented among the people who arrived.\n\n"
+		+ "[i]Sources: Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); OpenStax, Biology for AP Courses §19.2 Population Genetics; UC Berkeley Understanding Evolution, \"Bottlenecks and founder effects\"; Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2).[/i]\n\n"
+	) + _howto_bbcode()
+
+# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
+# pause popup opened by the help button that DriftPreset puts in the panel.
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "The lab is split into two pens. The mainland holds up to 24 blobs and starts full, with 8 of each color. The island holds up to 12 and starts empty. The slider sets how many founders cross, from 2 to 6. When you press Send, that many mainland blobs are chosen at random — you choose how many, never which — and moved to the island. The mainland keeps running as if nothing happened. Each pen enforces its own cap, and every offspring inherits one parent's color at random. A colored bar under each pen shows that pen's current mix, and the counts panel lists both. Only one crossing is allowed per run; a second wave would be migration, which is what the Gene Flow preset covers. The run ends when the island settles on a single color or time runs out, and the results card puts the mainland and island side by side.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  Wait for the mainland to fill to 24.\n"
+		+ "2.  Set the founder count and press Send.\n"
+		+ "3.  Immediately compare the two bars. Whatever difference you see exists before any drift has happened — that difference is the founder effect.\n"
+		+ "4.  Watch the island for the rest of the run and check whether it ever regains a color it started without.\n"
+		+ "5.  Run it again with 2 founders, then with 6. Note how often a color is missing from the island in each case."
+	)
 
 func _preset_questions() -> Array:
 	return [

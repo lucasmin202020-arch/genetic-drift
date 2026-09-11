@@ -1,7 +1,7 @@
 extends DriftEvent
 
 # ===========================================================================
-#  EVENT: BOTTLENECK  (v2)
+#  EVENT: BOTTLENECK  (v2.1)
 #
 #  A population crash. Most blobs die at random, a handful survive, and the
 #  survivors breed the population back up to full size.
@@ -10,18 +10,16 @@ extends DriftEvent
 #  the recovered population descends from the few that made it, so the
 #  recovered mix is the survivors' mix — not the original one.
 #
-#  WHAT CHANGED FROM v1
-#  --------------------
 #  It repeats. Once the population is back to size the button re-arms, and
-#  you can crash it again — a SERIAL bottleneck. That's the realistic case
-#  (a species that gets hammered every few decades), and it's where the
-#  lesson becomes undeniable: each crash chips away diversity that never
-#  comes back, until a population of twenty-four is all one colour and
-#  looks completely healthy from a headcount.
+#  you can crash it again — a SERIAL bottleneck. Each crash chips away
+#  diversity that never comes back, until a population of twenty-four is all
+#  one colour and looks completely healthy from a headcount.
 #
-#  The severity slider lets the user find the threshold: 10 survivors
-#  usually keeps all three colours through one crash, 2 almost never does,
-#  and even mild crashes lose everything if you repeat them enough.
+#  INTRO TEXT LAYOUT (v2.1)
+#  The start screen is now three labelled sections:
+#    THE SCIENCE        — the actual biology, paraphrased from named sources
+#    HOW THIS SIM WORKS — mechanics only, explicitly flagged as not-biology
+#    WHAT TO DO         — a numbered procedure
 #
 #  SETUP:
 #    1. Open Game.tscn -> Scene -> "Save Scene As..." -> Bottleneck.tscn
@@ -54,7 +52,29 @@ func _preset_title() -> String:
 	return "Bottleneck"
 
 func _preset_intro_bbcode() -> String:
-	return "Twenty-four blobs, evenly split. Then the population [b]crashes[/b] — a disease, a drought, a hard winter — and only a handful survive.\n\nThe survivors are picked [b]completely at random[/b]. No color is hardier. Nothing about a blob makes it more likely to make it through.\n\nAfterwards the survivors breed, and the pen fills back up to twenty-four. Then you can crash it [b]again[/b].\n\n[b]The recovery is the part worth watching.[/b] The numbers come back every time. The question is whether the [b]colors[/b] do — because every blob in the recovered population is descended from the few that happened to survive.\n\nUse the slider to choose how severe each crash is. Two survivors is brutal; twelve is mild. Try a mild crash several times in a row."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "Genetic drift is a change in how common each allele (each version of a gene) is in a population, caused by chance rather than by any allele being better than another. It happens in every population that is not infinitely large, and its effects are strongest in small populations.\n\n"
+		+ "A [b]population bottleneck[/b] is genetic drift at its most extreme. Some event — a fire, a drought, a disease, overhunting — kills most of a population in a short time. Which individuals survive has nothing to do with their genes: a fire cannot tell one genotype from another, so no genotype survives it better than any other. The survivors are therefore a random sample of the original population, and a small random sample is usually not a representative one.\n\n"
+		+ "From that moment on, the survivors' allele frequencies [i]are[/i] the population's allele frequencies, however different they may be from what existed before. Any allele that no survivor happened to carry is gone permanently, because offspring can only inherit alleles their parents have. Even a beneficial allele can be lost this way.\n\n"
+		+ "Real case: northern elephant seals were hunted down to roughly twenty animals by the 1890s. Protected since then, they have rebounded to well over 100,000 — but they carry far less genetic variation than southern elephant seals, which were never hunted so severely. The headcount recovered fully. The diversity did not, and could not.\n\n"
+		+ "Two consequences follow. First, the smaller the surviving group, the more diversity is lost. Second, bottlenecks compound: a population that is hit again and again loses a further slice of variation each time, even if each individual crash is mild.\n\n"
+		+ "[i]Sources: Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); OpenStax, Biology for AP Courses §19.2 Population Genetics; UC Berkeley Understanding Evolution, \"Bottlenecks and founder effects\"; Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2).[/i]\n\n"
+	) + _howto_bbcode()
+
+# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
+# pause popup opened by the help button that DriftPreset puts in the panel.
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "The pen holds 24 blobs in three colors, 8 of each. Color is a blob's only gene. The slider sets how many blobs survive each crash, from 2 to 12. When you press Crash, the blobs are shuffled and every blob past that number dies — survival is random with respect to color. The survivors then breed the pen back up to 24; each offspring inherits the color of one parent, chosen at random. Once the pen is back to full size the button re-arms and you can crash it again. Every crash is marked on the graph, and the results card compares the population before the first crash with the population at the end.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  Leave the slider at 4 and press Crash once. Watch the bars while the population recovers.\n"
+		+ "2.  When the button re-arms, crash it again. Keep going until a color disappears.\n"
+		+ "3.  Run it again at 12 survivors and crash it five or more times. Then run it at 2.\n"
+		+ "4.  Before every crash, predict how many colors will survive it. Check yourself against the log."
+	)
 
 func _preset_questions() -> Array:
 	return [

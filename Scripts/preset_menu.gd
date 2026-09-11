@@ -15,20 +15,18 @@ extends Control
 #  EVENTS tab instead — presets here each teach a distinct idea about how
 #  drift behaves, not a single event.
 #
-#  HOW A CARD DESCRIBES ITSELF
-#  ---------------------------
-#  The old "Simple / Medium / Complex" badge was a judgement call the user
-#  had no way to check. Two things replace it, and nothing else:
+#  CARD ANATOMY
+#    [LESSON n] Title [WARN chip, if any]
+#    The question this preset answers.
 #
 #    LESSON n   the running order. The order IS the difficulty curve, so
 #               nobody has to be told a scenario is "advanced".
-#    A question the scenario answers, in one line under the title. Someone
-#               who reads only that line still knows why the preset exists.
+#    warn       a red flag for any preset that deliberately breaks the lab's
+#               no-selection rule. Right now that's Drift vs Selection only.
+#               Leave it as "" on every other preset.
 #
-#  One extra chip exists: "warn", a red flag for any preset that deliberately
-#  breaks the lab's no-selection rule. Right now that's Drift vs Selection
-#  only, and flagging it makes clear the rule was broken on purpose. Leave it
-#  as "" on every other preset.
+#  An accent stripe runs down the left edge, the card brightens on hover,
+#  and clicking anywhere on the card launches it (not just the Start button).
 #
 #  TO ADD A PRESET LATER: add one entry to the PRESETS array below.
 #  Leave "scene" as "" to show it as a greyed-out "Coming soon" card.
@@ -41,42 +39,36 @@ const PRESETS := [
 		"title": "Randomness: The Basis of Genetic Drift",
 		"question": "Does a color have to be better to take over?",
 		"warn": "",
-		"desc": "Three colors, perfectly even, with nothing favoring any of them. Watch chance alone push one color out in front and grind the others down.",
 		"scene": "res://Scenes/CoinFlip.tscn",
 	},
 	{
 		"title": "The Long Shot",
 		"question": "Can a rare color beat a common one on luck alone?",
 		"warn": "",
-		"desc": "One color starts common, two start rare. A color's odds of taking over are just its starting share — so run it again and again, and see how close the tally gets.",
 		"scene": "res://Scenes/LongShot.tscn",
 	},
 	{
 		"title": "Small vs Large",
 		"question": "Why does population size change how fast drift works?",
 		"warn": "",
-		"desc": "Two walled-off populations running at once from identical starting frequencies. The small one lurches and fixes; the large one barely moves.",
 		"scene": "res://Scenes/SmallVsLarge.tscn",
 	},
 	{
 		"title": "Parallel Worlds",
 		"question": "Same start, same rules — same ending?",
 		"warn": "",
-		"desc": "Nine identical populations in a 3×3 grid, all running at once. Same start, same rules, nine different endings.",
 		"scene": "res://Scenes/ParallelWorlds.tscn",
 	},
 	{
 		"title": "Gene Flow",
 		"question": "What happens when two isolated groups start mixing?",
 		"warn": "",
-		"desc": "Two populations behind a wall with a gate. Sealed, they drift apart. Open the gate and a trickle of migration drags them back together.",
 		"scene": "res://Scenes/GeneFlow.tscn",
 	},
 	{
 		"title": "Drift vs Selection",
 		"question": "How is a real advantage different from pure luck?",
 		"warn": "Breaks the no-selection rule",
-		"desc": "The same setup twice, but in one pen red genuinely survives better. Drift wanders; selection climbs. This is the difference the whole lab rests on.",
 		"scene": "res://Scenes/DriftVsSelection.tscn",
 	},
 ]
@@ -138,6 +130,7 @@ func _build_ui():
 	# --- SUBTITLE ---
 	var sub := Label.new()
 	sub.text = "Six guided lessons, in order. Each one asks a question, runs on its own, then explains what happened."
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.add_theme_font_size_override("font_size", 16)
 	sub.add_theme_color_override("font_color", Color(0.62, 0.62, 0.68))
 	col.add_child(sub)
@@ -166,13 +159,17 @@ func _make_card(data: Dictionary, lesson_no: int) -> PanelContainer:
 
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# --- CARD STYLE: accent stripe down the left edge ---
 	var cs := StyleBoxFlat.new()
 	cs.bg_color = Color(0.15, 0.15, 0.18) if unlocked else Color(0.12, 0.12, 0.14)
 	cs.set_corner_radius_all(14)
-	cs.content_margin_left = 20
+	cs.border_color = Color(LESSON_COLOR.r, LESSON_COLOR.g, LESSON_COLOR.b, 0.9 if unlocked else 0.3)
+	cs.border_width_left = 5
+	cs.content_margin_left = 24
 	cs.content_margin_right = 20
-	cs.content_margin_top = 16
-	cs.content_margin_bottom = 16
+	cs.content_margin_top = 18
+	cs.content_margin_bottom = 18
 	card.add_theme_stylebox_override("panel", cs)
 
 	var row := HBoxContainer.new()
@@ -185,6 +182,7 @@ func _make_card(data: Dictionary, lesson_no: int) -> PanelContainer:
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(text_col)
 
+	# --- TITLE ROW: badge + name + warn ---
 	var title_row := HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", 12)
 	text_col.add_child(title_row)
@@ -215,16 +213,6 @@ func _make_card(data: Dictionary, lesson_no: int) -> PanelContainer:
 		QUESTION_COLOR if unlocked else Color(0.48, 0.50, 0.56))
 	text_col.add_child(q)
 
-	var desc := Label.new()
-	desc.text = data["desc"]
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(400, 0)
-	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc.add_theme_font_size_override("font_size", 15)
-	desc.add_theme_color_override("font_color",
-		Color(0.72, 0.72, 0.78) if unlocked else Color(0.45, 0.45, 0.50))
-	text_col.add_child(desc)
-
 	# --- RIGHT: action button ---
 	var btn_wrap := CenterContainer.new()
 	row.add_child(btn_wrap)
@@ -233,6 +221,15 @@ func _make_card(data: Dictionary, lesson_no: int) -> PanelContainer:
 		var start := _make_button("Start", Color(0.36, 0.55, 0.95), Vector2(150, 46), 18)
 		start.pressed.connect(_launch.bind(scene_path))
 		btn_wrap.add_child(start)
+
+		# Hover highlight + whole card clickable
+		var hover_cs: StyleBoxFlat = cs.duplicate()
+		hover_cs.bg_color = Color(0.19, 0.19, 0.23)
+		card.mouse_entered.connect(func(): card.add_theme_stylebox_override("panel", hover_cs))
+		card.mouse_exited.connect(func(): card.add_theme_stylebox_override("panel", cs))
+		card.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_launch(scene_path))
 	else:
 		var soon := _make_button("Coming soon", Color(0.20, 0.20, 0.23), Vector2(150, 46), 15)
 		soon.disabled = true
@@ -241,7 +238,7 @@ func _make_card(data: Dictionary, lesson_no: int) -> PanelContainer:
 
 	return card
 
-# One chip style for both kinds of tag, so they read as a single system.
+# One chip style for every kind of tag, so they read as a single system.
 func _make_chip(text: String, base: Color, unlocked: bool) -> PanelContainer:
 	var chip := PanelContainer.new()
 	var c: Color = base

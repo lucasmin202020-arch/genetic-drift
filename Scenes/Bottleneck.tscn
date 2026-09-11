@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://c35eaet6uvkac"]
 
-[ext_resource type="PackedScene" uid="uid://bbn3al2ubo6ed" path="res://Scenes/blob.tscn" id="2_haxj4"]
-[ext_resource type="Texture2D" uid="uid://breyi4wym17pe" path="res://Graphics/Blobs/blob 1.png" id="3_0kteb"]
-[ext_resource type="Texture2D" uid="uid://bdj3pvgdx37ss" path="res://Graphics/Blobs/blob 2.png" id="4_ejjvk"]
-[ext_resource type="Texture2D" uid="uid://froqy6mdua7m" path="res://Graphics/Blobs/blob 3.png" id="5_k4so7"]
-[ext_resource type="Texture2D" uid="uid://d084upj346f50" path="res://Graphics/Blobs/Eye.png" id="6_4o8x7"]
-[ext_resource type="Texture2D" uid="uid://eppjgnfo1pcs" path="res://Graphics/Blobs/Eye2.png" id="7_gxxs7"]
+[ext_resource type="PackedScene" uid="uid://bbn3al2ubo6ed" path="res://Scenes/blob.tscn" id="2_tnwwy"]
+[ext_resource type="Texture2D" uid="uid://breyi4wym17pe" path="res://Graphics/Blobs/blob 1.png" id="3_haxj4"]
+[ext_resource type="Texture2D" uid="uid://bdj3pvgdx37ss" path="res://Graphics/Blobs/blob 2.png" id="4_0kteb"]
+[ext_resource type="Texture2D" uid="uid://froqy6mdua7m" path="res://Graphics/Blobs/blob 3.png" id="5_ejjvk"]
+[ext_resource type="Texture2D" uid="uid://d084upj346f50" path="res://Graphics/Blobs/Eye.png" id="6_k4so7"]
+[ext_resource type="Texture2D" uid="uid://eppjgnfo1pcs" path="res://Graphics/Blobs/Eye2.png" id="7_4o8x7"]
+[ext_resource type="Texture2D" uid="uid://vka8irw2uvdt" path="res://Graphics/Background/dark_lab_no_sidelines.svg" id="8_haxj4"]
 [ext_resource type="Script" uid="uid://buw5j43wiqxuh" path="res://Scripts/bottleneck.gd" id="8_tnwwy"]
 [ext_resource type="Script" uid="uid://cuja8jbwafrwf" path="res://Scripts/ui.gd" id="9_i86to"]
 
@@ -23,18 +24,19 @@ size = Vector2(17, 624)
 
 [node name="Game" type="Node2D" unique_id=1419479712]
 script = ExtResource("8_tnwwy")
-blob_scene = ExtResource("2_haxj4")
-blob_tex_1 = ExtResource("3_0kteb")
-blob_tex_2 = ExtResource("4_ejjvk")
-blob_tex_3 = ExtResource("5_k4so7")
-eye_tex_1 = ExtResource("6_4o8x7")
-eye_tex_2 = ExtResource("7_gxxs7")
+blob_scene = ExtResource("2_tnwwy")
+blob_tex_1 = ExtResource("3_haxj4")
+blob_tex_2 = ExtResource("4_0kteb")
+blob_tex_3 = ExtResource("5_ejjvk")
+eye_tex_1 = ExtResource("6_k4so7")
+eye_tex_2 = ExtResource("7_4o8x7")
 metadata/_edit_horizontal_guides_ = [632.0, 648.0]
 metadata/_edit_vertical_guides_ = [854.0]
 
 [node name="DarkLabNoSidelines" type="Sprite2D" parent="." unique_id=1017198556]
 position = Vector2(428, 330)
 scale = Vector2(1, 0.9939394)
+texture = ExtResource("8_haxj4")
 
 [node name="Walls" type="StaticBody2D" parent="." unique_id=1146561530]
 

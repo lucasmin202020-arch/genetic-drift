@@ -13,6 +13,12 @@ extends Control
 #  event in here takes a reading before it fires and another one after, and
 #  the results card puts them side by side.
 #
+#  CARD ANATOMY
+#    [EVENT n] Title
+#    The question this event answers.
+#  An accent stripe runs down the left edge, the card brightens on hover,
+#  and clicking anywhere on the card launches it (not just the Start button).
+#
 #  SETUP:
 #    1. New scene, root = Control named "EventsMenu", attach this script.
 #    2. Save as  res://Scenes/EventsMenu.tscn
@@ -25,28 +31,24 @@ const MENU_SCENE := "res://Scenes/MainMenu.tscn"
 
 const EVENTS := [
 	{
-		"title": "One Unlucky Death",
-		"question": "How small can a drift step be and still change everything?",
-		"desc": "One blob dies at random, one survivor immediately has a child. The population never changes size — only its mix does. Press it forty times and watch a color disappear.",
-		"scene": "res://Scenes/UnluckyDeath.tscn",
-	},
-	{
-		"title": "Natural Disaster",
-		"question": "Can something that ignores color still wipe out a color?",
-		"desc": "Aim a disaster zone anywhere in the lab and see exactly what's inside before you fire. The zone only knows location — but colors clump by accident, so location is enough.",
-		"scene": "res://Scenes/NaturalDisaster.tscn",
-	},
-	{
 		"title": "Bottleneck",
 		"question": "If the population recovers, does its diversity recover too?",
-		"desc": "Crash the population down to a handful of random survivors, then watch them breed it back to full size. The numbers come back. Find out what doesn't.",
 		"scene": "res://Scenes/Bottleneck.tscn",
 	},
 	{
 		"title": "Founder Effect",
 		"question": "How does a new population lose diversity when nobody dies?",
-		"desc": "A few random blobs cross to an empty island and start over. The mainland carries on untouched, so you can watch both at once and see exactly how far the island strayed.",
 		"scene": "res://Scenes/FounderEffect.tscn",
+	},
+	{
+		"title": "Natural Disaster",
+		"question": "Can something that ignores color still wipe out a color?",
+		"scene": "res://Scenes/NaturalDisaster.tscn",
+	},
+	{
+		"title": "One Unlucky Death",
+		"question": "How small can a drift step be and still change everything?",
+		"scene": "res://Scenes/UnluckyDeath.tscn",
 	},
 ]
 
@@ -131,13 +133,17 @@ func _make_card(data: Dictionary, event_no: int) -> PanelContainer:
 
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# --- CARD STYLE: accent stripe down the left edge ---
 	var cs := StyleBoxFlat.new()
 	cs.bg_color = Color(0.15, 0.15, 0.18) if unlocked else Color(0.12, 0.12, 0.14)
 	cs.set_corner_radius_all(14)
-	cs.content_margin_left = 20
+	cs.border_color = Color(EVENT_COLOR.r, EVENT_COLOR.g, EVENT_COLOR.b, 0.9 if unlocked else 0.3)
+	cs.border_width_left = 5
+	cs.content_margin_left = 24
 	cs.content_margin_right = 20
-	cs.content_margin_top = 16
-	cs.content_margin_bottom = 16
+	cs.content_margin_top = 18
+	cs.content_margin_bottom = 18
 	card.add_theme_stylebox_override("panel", cs)
 
 	var row := HBoxContainer.new()
@@ -149,6 +155,7 @@ func _make_card(data: Dictionary, event_no: int) -> PanelContainer:
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(text_col)
 
+	# --- TITLE ROW: badge + name ---
 	var title_row := HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", 12)
 	text_col.add_child(title_row)
@@ -162,6 +169,7 @@ func _make_card(data: Dictionary, event_no: int) -> PanelContainer:
 		Color(0.95, 0.95, 0.95) if unlocked else Color(0.55, 0.55, 0.60))
 	title_row.add_child(name_lbl)
 
+	# --- THE QUESTION THIS EVENT ANSWERS ---
 	var q := Label.new()
 	q.text = data["question"]
 	q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -172,16 +180,7 @@ func _make_card(data: Dictionary, event_no: int) -> PanelContainer:
 		QUESTION_COLOR if unlocked else Color(0.50, 0.48, 0.46))
 	text_col.add_child(q)
 
-	var desc := Label.new()
-	desc.text = data["desc"]
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(400, 0)
-	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc.add_theme_font_size_override("font_size", 15)
-	desc.add_theme_color_override("font_color",
-		Color(0.72, 0.72, 0.78) if unlocked else Color(0.45, 0.45, 0.50))
-	text_col.add_child(desc)
-
+	# --- RIGHT: action button ---
 	var btn_wrap := CenterContainer.new()
 	row.add_child(btn_wrap)
 
@@ -189,6 +188,15 @@ func _make_card(data: Dictionary, event_no: int) -> PanelContainer:
 		var start := _make_button("Start", Color(0.78, 0.38, 0.30), Vector2(150, 46), 18)
 		start.pressed.connect(_launch.bind(scene_path))
 		btn_wrap.add_child(start)
+
+		# Hover highlight + whole card clickable
+		var hover_cs: StyleBoxFlat = cs.duplicate()
+		hover_cs.bg_color = Color(0.19, 0.19, 0.23)
+		card.mouse_entered.connect(func(): card.add_theme_stylebox_override("panel", hover_cs))
+		card.mouse_exited.connect(func(): card.add_theme_stylebox_override("panel", cs))
+		card.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_launch(scene_path))
 	else:
 		var soon := _make_button("Coming soon", Color(0.20, 0.20, 0.23), Vector2(150, 46), 15)
 		soon.disabled = true

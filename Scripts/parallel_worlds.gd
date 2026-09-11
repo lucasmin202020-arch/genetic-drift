@@ -162,7 +162,26 @@ func _preset_title() -> String:
 	return "Parallel Worlds"
 
 func _preset_intro_bbcode() -> String:
-	return "Nine separate worlds, each sealed off in its own pen, all running at the same time.\n\nEvery world starts [b]completely identical[/b]: 6 blobs — 2 red, 2 green, 2 blue. Same rules everywhere. No color is favoured in any of them, and no world is different from any other in any way.\n\nEach pen shows its own [b]stacked bar[/b] along the bottom: the width of each color is how common it is right now. When a world drops to a single color it's [b]FIXED[/b], its border turns that color, and it's done.\n\nWith three equal colors you'd expect roughly [b]three worlds each[/b] — but any single run will scatter."
+	return (
+		"[b]THE SCIENCE[/b]\n\n"
+		+ "If genetic drift is driven by chance, then two populations that start identical should not be expected to end identical. Each one follows its own sequence of random births and deaths, and those sequences diverge. This is the defining feature that separates drift from natural selection: selection pushes every population in the same direction, because the same trait is favoured everywhere; drift pushes each population in its own direction, because nothing is favoured anywhere.\n\n"
+		+ "The classic demonstration is Peter Buri's 1956 experiment. He set up 107 separate laboratory populations of fruit flies, each founded by 16 flies carrying two eye-color alleles at exactly 50/50, and bred each population for 19 generations. The populations started identical and were kept under identical conditions. By the end, some had lost one allele entirely, some had lost the other, and the rest were scattered in between. The overall spread matched what drift theory predicted for populations that small. No population was special; the spread came entirely from sampling.\n\n"
+		+ "The same logic applies in nature. Split a species into isolated groups — on different islands, in separate valleys, on opposite sides of a river — and over generations the groups accumulate different allele frequencies purely by drift, with no environmental difference required. Motoo Kimura's neutral theory (1968) argues that a large share of the genetic differences between real populations and species arose this way, from drift acting on neutral variants rather than from selection.\n\n"
+		+ "Two things to keep straight. First, \"random\" does not mean \"unfair\": every color has the same chance in every world. Second, randomness does not mean the outcome is unpredictable at the level of the whole set: with three equally common colors, roughly a third of the worlds should end on each one, and the more worlds you run, the closer the totals get to that.\n\n"
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Buri, P. (1956), \"Gene frequency in small populations of mutant Drosophila\", Evolution 10(4): 367–402; Kimura, M. (1968), \"Evolutionary rate at the molecular level\", Nature 217: 624–626.[/i]\n\n"
+	) + _howto_bbcode()
+
+func _howto_bbcode() -> String:
+	return (
+		"[b]HOW THIS SIMULATION WORKS[/b]\n"
+		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
+		+ "Nine walled-off pens run at once in a 3×3 grid. Each starts with 6 blobs — 2 red, 2 green, 2 blue — and can hold up to 9. Every world uses identical rules and no color is favoured in any of them. Each pen has a colored bar along its bottom edge showing its current mix. When a world drops to a single color it is FIXED: its border turns that color, a tag appears, the pen dims, and its blobs stop moving. A world whose blobs all die is tagged EMPTY. The side panel counts how many worlds each color has won this run, and keeps a running total across every run this session. The run ends when all nine worlds have settled or when time runs out.\n\n"
+		+ "[b]WHAT TO DO[/b]\n\n"
+		+ "1.  Before pressing Begin, write down how many worlds you expect each color to win.\n"
+		+ "2.  Once the blobs mature, watch the nine bottom bars for 20 seconds. Notice they are already sliding in different directions.\n"
+		+ "3.  When the first world fixes, note its color, then watch whether the next world to fix agrees with it.\n"
+		+ "4.  At the end, compare the split to 3 / 3 / 3. Then run it twice more and look at the all-runs total — it should get closer to a third each as the total climbs."
+	)
 
 func _preset_questions() -> Array:
 	return [
