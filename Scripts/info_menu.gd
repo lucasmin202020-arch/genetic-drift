@@ -21,7 +21,21 @@ extends Control
 #    To add an entry, write a _e_*() function and add one line to SECTIONS.
 #    All figures are drawn in code — no image files, nothing to lose on
 #    export. Set BLOB_TEXTURES to use real sprite art in the blob figures.
+#
+#  OVERLAY MODE (v2)
+#    A running scenario can open this same scene ON TOP of itself, without
+#    leaving the run. The scenario instantiates InfoMenu.tscn, sets
+#    overlay_mode = true BEFORE adding it to the tree, connects the `closed`
+#    signal, and pauses the tree. In overlay mode every "back to main menu"
+#    button becomes "Close" and emits `closed` instead of changing scene.
+#    See DriftPreset._on_info_pressed() in coin_flip.gd.
 # ===========================================================================
+
+signal closed
+
+# Set by the host BEFORE add_child(). When true, exits emit `closed` instead
+# of changing scene, and Esc closes the overlay.
+var overlay_mode: bool = false
 
 const MENU_SCENE := "res://Scenes/MainMenu.tscn"
 const FONT_PATH := "res://Fonts/Nunito.ttf"
@@ -270,6 +284,24 @@ func _go(path: String) -> void:
 		return
 	get_tree().change_scene_to_file(path)
 
+# Every "leave the Info menu" button routes through here, so overlay mode
+# only has to be handled once.
+func _leave() -> void:
+	if overlay_mode:
+		closed.emit()
+	else:
+		_go(MENU_SCENE)
+
+func _exit_button_text(default_text: String) -> String:
+	return "Close  (Esc)" if overlay_mode else default_text
+
+func _input(event: InputEvent) -> void:
+	if not overlay_mode:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		_leave()
+
 # ---------------------------------------------------------------------------
 #  HUB
 # ---------------------------------------------------------------------------
@@ -320,11 +352,11 @@ func _build_hub() -> void:
 	gap2.custom_minimum_size = Vector2(0, 8)
 	col.add_child(gap2)
 
-	var back := _make_button("Back to Menu", Color(0.32, 0.32, 0.35), Vector2(220, 46), 17)
+	var back := _make_button(_exit_button_text("Back to Menu"), Color(0.32, 0.32, 0.35), Vector2(220, 46), 17)
 	var back_wrap := CenterContainer.new()
 	back_wrap.add_child(back)
 	col.add_child(back_wrap)
-	back.pressed.connect(func(): _go(MENU_SCENE))
+	back.pressed.connect(_leave)
 
 func _make_hub_card(index: int) -> Button:
 	var sec: Dictionary = SECTIONS[index]
@@ -476,8 +508,8 @@ func _build_page() -> void:
 	page_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(page_title)
 
-	var menu := _make_button("Main Menu", Color(0.22, 0.22, 0.25), Vector2(130, 40), 14)
-	menu.pressed.connect(func(): _go(MENU_SCENE))
+	var menu := _make_button(_exit_button_text("Main Menu"), Color(0.22, 0.22, 0.25), Vector2(130, 40), 14)
+	menu.pressed.connect(_leave)
 	header.add_child(menu)
 
 	# Body row
@@ -1540,135 +1572,135 @@ func _e_basic() -> Array:
 	return [
 		T(_h("The basic idea") + """
 
-Every population carries variation — different versions of a trait, called [b][color=#6db3ff][url=https://en.wikipedia.org/wiki/Allele]alleles[/url][/color][/b]. [b][color=#6db3ff][url=https://en.wikipedia.org/wiki/Genetic_drift]Genetic drift[/url][/color][/b] is the change in how common each allele is over time, caused purely by [b]random chance[/b] rather than by any version being "better."
+A population carries different versions of a trait, called [b][color=#6db3ff][url=https://en.wikipedia.org/wiki/Allele]alleles[/url][/color][/b]. [b][color=#6db3ff][url=https://en.wikipedia.org/wiki/Genetic_drift]Genetic drift[/url][/color][/b] is when the share of each allele changes over time [b]by chance alone[/b] — not because any version is better.
 
-Picture drawing colored marbles from a bag and refilling based on what you happened to draw. Even when no marble is special, the proportions wander. Sometimes a version drifts all the way to 100% and becomes [b]fixed[/b]; sometimes it drifts to 0% and is [b]lost[/b], unable to return on its own."""),
-		F(_fig_drift, 210, "Six populations, all starting at a 50/50 mix, with nothing acting on them but chance. Green lines drifted all the way to fixation, red lines to loss, grey lines are still wandering."),
-		T("""Three things to hold onto, which the rest of this section unpacks one at a time:
+Think of drawing marbles from a bag and refilling it with what you drew. Nothing is special, yet the mix wanders. Eventually one version hits 100% ([b]fixed[/b]) or 0% ([b]lost[/b])."""),
+		F(_fig_drift, 210, "Six populations, all starting 50/50, with nothing acting on them but chance. Green lines drifted to fixation, red to loss, grey are still wandering."),
+		T("""Three things to hold onto:
 
-•  Drift is [b]random[/b]. It has no direction and no goal.
-•  Drift is [b]stronger in small populations[/b] and weaker in large ones.
-•  Drift is [b]not selection[/b]. Both change allele frequencies, but only selection cares whether an allele is useful.
+•  Drift is [b]random[/b] — no direction, no goal.
+•  Drift is [b]stronger in small populations[/b].
+•  Drift is [b]not selection[/b] — only selection cares whether an allele is useful.
 
-In this lab, every trait a blob has is cosmetic and every blob lives exactly as long as every other. That is deliberate: it means every change you see in the numbers is drift, and only drift."""),
-		C("IN ONE SENTENCE", "Genetic drift is the random wandering of allele frequencies that happens in every finite population, simply because each generation is a random sample of the last.", COL_BLUE),
+In this lab every trait is cosmetic and every blob lives equally long. So everything you see is drift, and only drift."""),
+		C("IN ONE SENTENCE", "Genetic drift is the random wandering of allele frequencies that happens in every finite population, because each generation is a random sample of the last.", COL_BLUE),
 	]
 
 func _e_why() -> Array:
 	return [
 		T(_h("Why it happens") + """
 
-Drift is not a force. Nothing pushes the frequencies around. It comes from a much more boring fact: [b]a sample is never a perfect copy of what it was drawn from.[/b]
+Drift is not a force. It comes from one boring fact: [b]a sample is never a perfect copy of what it was drawn from.[/b]
 
-Suppose 10 blobs are half blue and half red, and between them they produce 10 offspring. Which parents happen to bump into each other is random, so there's no reason to expect exactly 5 blue and 5 red babies. Six and four is at least as likely. And once the next generation is 60% blue, the generation after that is a sample of [i]that[/i] — the drift has no memory of the original 50%."""),
-		F(_fig_sampling, 200, "Every generation is a random sample of the one before. Nothing is favoured, and yet the mix moves — because random samples miss the true proportions a little every time, and the misses pile up."),
-		T("""Biologists call this [b]sampling error[/b]. In the lab, it enters in three places:
+Ten blobs, half blue and half red, make ten babies. Which parents bump into each other is random, so 6 blue and 4 red is as likely as 5 and 5. The next generation samples [i]that[/i] 60/40 — drift has no memory of the original split."""),
+		F(_fig_sampling, 200, "Every generation is a random sample of the one before. Nothing is favoured, yet the mix moves, because random samples miss the true proportions a little every time."),
+		T("""Biologists call this [b]sampling error[/b]. In the lab it enters in three places:
 
-•  [b]Who meets whom.[/b] Blobs wander randomly, so which pairs collide and reproduce is chance.
-•  [b]Which trait the baby gets.[/b] Each trait is a fair coin flip between the two parents.
-•  [b]Who's alive when.[/b] Lifespans are fixed, but birth timing is not, so which blobs happen to be adults at the same moment is chance too.
+•  [b]Who meets whom[/b] — blobs wander randomly.
+•  [b]Which trait the baby gets[/b] — a fair coin flip per trait.
+•  [b]Who's an adult when[/b] — birth timing is random.
 
-None of these steps looks at what colour, shape, or eye count a blob has. That's why the result is drift and not selection."""),
+None of these look at colour. That's why it's drift, not selection."""),
 	]
 
 func _e_fixation() -> Array:
 	return [
 		T(_h("Fixation and loss") + """
 
-Because drift keeps wandering, and because 0% and 100% are walls it can't pass through, every allele in a closed population eventually ends up at one wall or the other. When one version reaches 100% we say it has become [b]fixed[/b]. When it reaches 0% we say it has been [b]lost[/b].
+Drift keeps wandering, and 0% and 100% are walls. So every allele eventually ends at one: [b]fixed[/b] (100%) or [b]lost[/b] (0%).
 
-Both are one-way doors. Once a colour is gone, no coin flip can bring it back — there's no parent left to inherit it from. Only [b]mutation[/b] (a brand-new copy appearing) or [b]migration[/b] (a copy arriving from elsewhere) can restore it, and this lab has neither unless you open a gate."""),
-		F(_fig_no_return, 190, "A single allele's frequency wandering until it touches 0%. After that the line is flat forever: there is nothing left to drift."),
-		T("""There is a surprisingly clean rule for [i]which[/i] allele wins. Under pure drift, [b]an allele's chance of eventually becoming fixed equals its current frequency.[/b] An allele at 67% has a 67% chance of taking over. An allele at 17% has a 17% chance — not zero, just small. Rarity is a disadvantage in the odds, never a verdict."""),
-		F(_fig_fixation_prob, 160, "Starting share on top, chance of taking over underneath. They are the same bar. This is the rule that The Long Shot preset tests by running it over and over."),
-		C("WHY THE RULE IS TRUE", "Imagine tagging every blob in the population. Eventually one blob's lineage will be the ancestor of everybody. Since drift is blind, every blob has an equal chance of being that lucky ancestor — so the chance that the winner is blue is just the fraction of blobs that are blue right now.", COL_BLUE),
+Both are one-way doors. A lost colour has no parent left to inherit it from. Only [b]mutation[/b] or [b]migration[/b] can bring it back — and this lab has neither unless you open a gate."""),
+		F(_fig_no_return, 190, "One allele wandering until it touches 0%. After that the line is flat forever."),
+		T("""The clean rule: under pure drift, [b]an allele's chance of fixing equals its current frequency.[/b] 67% share → 67% chance. 17% share → 17% chance. Rare is a disadvantage, not a verdict."""),
+		F(_fig_fixation_prob, 160, "Starting share on top, chance of taking over underneath — the same bar. The Long Shot preset tests this by running over and over."),
+		C("WHY THE RULE IS TRUE", "Eventually one blob's lineage becomes everyone's ancestor. Drift is blind, so every blob has an equal shot at being that ancestor — so the chance the winner is blue is just the fraction of blobs that are blue now.", COL_BLUE),
 	]
 
 func _e_popsize() -> Array:
 	return [
 		T(_h("Population size") + """
 
-The key idea: [b]drift is random[/b], and it is strongest in [b]small populations[/b], where a few lucky or unlucky events swing the percentages hard. In large populations the numbers barely move.
+Drift is [b]strongest in small populations[/b], where a few lucky or unlucky events swing the percentages hard. In large populations the numbers barely move.
 
-The reason is the same sampling logic as before. If you flip 8 coins you'll often get 6 or 7 heads. If you flip 200, you'll almost never get 150. A large population is a large sample, and large samples are more faithful copies of what they were drawn from."""),
-		F(_fig_popsize, 210, "The same number of generations in both panels. In the small population the frequency lurches around and hits an edge quickly; in the large one it barely leaves the middle."),
-		T("""Two consequences follow:
+Same sampling logic: flip 8 coins and 6 heads is common; flip 200 and 150 heads never happens. A big population is a big sample, and big samples are faithful."""),
+		F(_fig_popsize, 210, "Same number of generations in both panels. The small population lurches and hits an edge fast; the large one barely leaves the middle."),
+		T("""Two consequences:
 
-•  [b]Small populations fix fast.[/b] The time an allele takes to reach 0% or 100% grows roughly in proportion to population size. Halve the population and you roughly halve the wait.
-•  [b]Small populations lose diversity fast.[/b] Every fixation event removes the other versions for good. Small groups run through this process quickly and end up uniform.
+•  [b]Small populations fix fast.[/b] Time to fixation grows roughly with population size.
+•  [b]Small populations lose diversity fast.[/b] Every fixation removes the other versions for good.
 
-This is why conservation biologists worry about tiny populations even when the animals are healthy. It isn't the present that's at risk — it's the variation the species will need later."""),
-		C("A DETAIL WORTH KNOWING", "What matters is not the head count but the [b]effective[/b] population size — roughly, the number of individuals actually reproducing. A herd of 1,000 in which only 20 breed drifts like a population of 20. In the lab, only adult blobs breed, so the effective size is the number of adults, not the number on screen.", COL_BLUE),
+This is why conservation biologists worry about tiny populations even when the animals look healthy."""),
+		C("A DETAIL WORTH KNOWING", "What matters is the [b]effective[/b] population size — roughly, how many are actually breeding. A herd of 1,000 where 20 breed drifts like a population of 20. In the lab, only adults breed.", COL_BLUE),
 	]
 
 func _e_not_selection() -> Array:
 	return [
 		T(_h("Drift is not selection") + """
 
-Both drift and natural selection change allele frequencies, and both can drive an allele all the way to fixation. That's where the resemblance ends.
+Both change allele frequencies. Both can fix an allele. That's where the resemblance ends.
 
-[b]Selection[/b] happens when one version really does help its carrier survive or reproduce. It has a direction: the helpful version climbs, run after run. [b]Drift[/b] has no direction. The same starting population can end red, green, or blue, and nothing about the setup tells you which."""),
-		F(_fig_drift_vs_selection, 210, "Left: pure drift, five runs, five different endings. Right: red gets a modest survival advantage — five runs, five near-identical climbs. Direction is the fingerprint of selection."),
-		T("""A handy test: [b]run it again.[/b] A single run of drift can look exactly like selection — some colour took over, after all. But repeat it ten times. If the same colour wins every time, something is favouring it. If the winner scatters, it was luck.
+[b]Selection[/b] has a direction: the helpful version climbs, run after run. [b]Drift[/b] has none: the same start can end red, green, or blue, and nothing tells you which."""),
+		F(_fig_drift_vs_selection, 210, "Left: pure drift, five runs, five different endings. Right: red gets a survival edge — five runs, five near-identical climbs. Direction is the fingerprint of selection."),
+		T("""The test: [b]run it again.[/b] One run of drift can look exactly like selection. Ten runs can't — if the same colour wins every time, something is favouring it.
 
-In real populations, drift and selection act at the same time. Drift is the background noise; selection is a signal on top of it. In small populations the noise is loud enough to drown out weak selection entirely — a slightly helpful allele can still be lost by bad luck. In large populations even tiny advantages win in the end."""),
-		C("WHY THE LAB BANS SELECTION", "Every trait in this lab is cosmetic and every lifespan is identical, so there is no signal — only noise. That way, whatever you see is guaranteed to be drift. The one exception is the Drift vs Selection preset, which switches an advantage on in a single pen precisely so you can see what the difference looks like.", COL_AMBER),
+In real populations both act at once. In small populations drift's noise can drown out weak selection; in large ones even tiny advantages win eventually."""),
+		C("WHY THE LAB BANS SELECTION", "Every trait is cosmetic and every lifespan is identical, so there's no signal — only noise. The one exception is Drift vs Selection, which switches an advantage on in one pen so you can see the difference.", COL_AMBER),
 	]
 
 func _e_diverge() -> Array:
 	return [
 		T(_h("Isolated populations diverge") + """
 
-Start two populations from the very same mix, wall them off, and let drift run. They will not stay the same. Each one wanders on its own random path, and with enough time they end up fixed on different alleles — different colours, in the lab's terms.
+Start two populations from the same mix, wall them off, let drift run. They will not stay the same. Each wanders its own random path and, given time, fixes on a different allele.
 
-Nothing about either population changed to suit its surroundings. They simply drifted apart, the way two people flipping coins in separate rooms get different sequences."""),
-		F(_fig_parallel, 230, "Nine populations, identical at the start and running under identical rules. By the end, some are blue, some red, some green. That scatter is what drift looks like from the outside."),
-		T("""This is one of the main reasons island species, cave species, and isolated mountain populations look different from their mainland relatives even when the habitats are similar. Some of the difference is adaptation. A lot of it is just drift, accumulating in isolation.
+Neither adapted to anything. They drifted apart the way two people flipping coins in separate rooms get different sequences."""),
+		F(_fig_parallel, 230, "Nine populations, identical at the start, identical rules. By the end some are blue, some red, some green."),
+		T("""This is a big reason island, cave, and mountain populations differ from their mainland relatives even in similar habitats. Some of it is adaptation. A lot is just drift in isolation.
 
-It also means a single population's ending tells you nothing about what "should" have happened. Only the pattern across many populations does."""),
+It also means one population's ending tells you nothing about what "should" happen. Only the pattern across many does."""),
 	]
 
 func _e_geneflow() -> Array:
 	return [
 		T(_h("Gene flow pulls them back") + """
 
-[b]Gene flow[/b] is the movement of alleles between populations — in plain terms, migration followed by breeding. It is the opposite of isolation, and it works against drift.
+[b]Gene flow[/b] is alleles moving between populations — migration followed by breeding. It works against drift.
 
-Two sealed populations drift apart. Open a door between them and even a small trickle of migrants begins dragging their allele frequencies back toward each other. A colour that had gone extinct in one group can come back, carried in by a migrant. Diversity the group had lost gets refilled from the neighbour."""),
-		F(_fig_gene_flow, 210, "How different two neighbouring populations are over time. With the gate shut they drift apart; open it and a handful of crossings snaps them back together. Shut it again and they start separating once more."),
-		T("""How much gene flow it takes to keep populations similar is a classic result: [b]remarkably little.[/b] Roughly one migrant per generation is enough to stop two populations from drifting to different fixed alleles. That's why isolation — a mountain range, a river, a stretch of ocean — is such an important ingredient in populations splitting apart.
+Two sealed populations drift apart. Open a door and even a trickle of migrants drags their frequencies back together. A colour that went extinct in one group can return, carried in by a migrant."""),
+		F(_fig_gene_flow, 210, "How different two neighbouring populations are over time. Gate shut: they drift apart. Gate open: a few crossings snap them back."),
+		T("""How much flow it takes is a classic result: [b]remarkably little.[/b] About one migrant per generation stops two populations fixing on different alleles. That's why barriers — mountains, rivers, oceans — matter so much for populations splitting.
 
-In the lab, a blob's population is defined by which pen it's physically in. Cross the gate and you breed with the other side. That's gene flow, one blob at a time."""),
+In the lab, your population is whichever pen you're standing in. Cross the gate and you breed with the other side."""),
 	]
 
 func _e_bottleneck_theory() -> Array:
 	return [
 		T(_h("Bottlenecks and founders") + """
 
-Drift is strongest when the population is small. Two kinds of event make a population suddenly small, and both are famous for what they do to diversity.
+Two kinds of event make a population suddenly small, and both are famous for what they do to diversity.
 
-A [b]bottleneck[/b] is a crash: disease, disaster, over-hunting. Most of the population dies at random and a few survive. A [b]founder effect[/b] is a split: a handful of individuals leave and start a new population somewhere else — an island, a new valley — while the original population carries on untouched.
+A [b]bottleneck[/b] is a crash: most die at random, a few survive. A [b]founder effect[/b] is a split: a handful leave and start a new population elsewhere, while the original carries on.
 
-In both cases the small group is a [b]random sample[/b] of the big one, and a small sample can't carry everything. Rare alleles are the first to go missing, and common ones end up at frequencies very unlike the source."""),
-		F(_fig_bottleneck_founder, 285, "Both routes end with a small, less diverse group — but only the bottleneck destroys the original population. In the founder effect the source population is untouched."),
-		T("""The part people miss: [b]recovery doesn't fix it.[/b] After a bottleneck the survivors can breed the numbers all the way back up. The head count looks healthy again. But every one of those new individuals descends from the same few survivors, so whatever alleles the survivors lacked are gone for good."""),
-		F(_fig_recovery, 190, "Population size before, during, and after a crash. The white line comes all the way back. The amber line — how many alleles are still present — drops at the crash and never returns."),
+Either way the small group is a [b]random sample[/b] of the big one, and a small sample can't carry everything."""),
+		F(_fig_bottleneck_founder, 285, "Both routes end with a small, less diverse group — but only the bottleneck destroys the original population."),
+		T("""The part people miss: [b]recovery doesn't fix it.[/b] Numbers can bounce all the way back. But every new individual descends from the same few survivors, so whatever they lacked is gone for good."""),
+		F(_fig_recovery, 190, "Population size recovers fully (white). The number of alleles still present (amber) drops at the crash and never returns."),
 	]
 
 func _e_real_world() -> Array:
 	return [
 		T(_h("Drift in the real world") + """
 
-The lab uses blobs, but every effect it shows has a well-documented counterpart in living populations.
+Every effect in the lab has a real counterpart.
 
-[b]Northern elephant seals[/b] were hunted almost to extinction in the 1800s, down to a few dozen animals. They have since recovered to well over a hundred thousand — a textbook bottleneck. Their numbers are fine; their genetic diversity remains among the lowest of any mammal, because everyone alive today descends from that tiny surviving group.
+[b]Northern elephant seals[/b] were hunted to a few dozen in the 1800s. They're back to over 100,000 — but with some of the lowest genetic diversity of any mammal. A textbook bottleneck.
 
-[b]Cheetahs[/b] are so genetically uniform that skin grafts between unrelated individuals are rarely rejected. The leading explanation is one or more severe bottlenecks thousands of years ago, from which the species has never regained its lost variation.
+[b]Cheetahs[/b] are so uniform that skin grafts between unrelated animals are rarely rejected — the mark of ancient bottlenecks.
 
-[b]The Amish of Pennsylvania[/b] descend from a small number of founding families. A rare form of dwarfism called Ellis–van Creveld syndrome, almost unheard of elsewhere, is common among them — because one founding couple happened to carry the allele, and in a small isolated group its frequency drifted upward instead of staying rare. That is the founder effect acting on people.
+[b]The Amish of Pennsylvania[/b] descend from a few founding families. A rare form of dwarfism, almost unheard of elsewhere, is common among them because one founding couple happened to carry it. Founder effect, in people.
 
-[b]Island populations[/b] of all kinds — lizards, birds, plants — routinely show allele frequencies that differ wildly from mainland relatives, often for no adaptive reason. They started from a few colonists and drifted alone ever since."""),
-		C("WHY IT MATTERS", "Drift is one of the main reasons small, isolated populations are fragile. It isn't just that there are few individuals — it's that every generation quietly discards variation the population may one day need. Conservation efforts to keep populations large and connected are, in large part, efforts to keep drift in check.", COL_GREEN),
+[b]Island populations[/b] of lizards, birds, and plants routinely differ wildly from mainland relatives for no adaptive reason. A few colonists, then drift alone."""),
+		C("WHY IT MATTERS", "Small, isolated populations quietly discard variation every generation. Keeping populations large and connected is, in large part, keeping drift in check.", COL_GREEN),
 		T("""[b]Learn more[/b]
 •  [color=#6db3ff][url=https://en.wikipedia.org/wiki/Genetic_drift]Genetic drift[/url][/color]
 •  [color=#6db3ff][url=https://en.wikipedia.org/wiki/Fixation_(population_genetics)]Fixation and loss[/url][/color]
@@ -1686,63 +1718,61 @@ func _e_blobs() -> Array:
 	return [
 		T(_h("The blobs") + """
 
-Each blob is one individual in the population. Every blob carries three independent traits:
+Each blob is one individual. Every blob carries three independent traits:
 •  [b]Color[/b] — Red, Green, or Blue
 •  [b]Shape[/b] — Round, Star, or Flower
-•  [b]Eyes[/b] — one eye or three eyes
+•  [b]Eyes[/b] — one or three
 
-These traits are [b]purely cosmetic[/b]. No color survives better, no shape reproduces faster. That is on purpose — it keeps this a [b]pure drift model[/b], so every change you see in the percentages is caused by chance alone, never by selection."""),
-		F(_fig_traits, 250, "The three trait sets. Every combination is possible, and none of them affects survival or reproduction in any way."),
-		T("""The presets track [b]colour only[/b], because one clear number is easier to read than three. The Playground tracks all three traits at once, and you'll notice they drift independently of one another — the colours can fix on red while the shapes are still a mix."""),
+All three are [b]purely cosmetic[/b]. No colour survives better, no shape breeds faster. That keeps this a [b]pure drift model[/b]: every change you see is chance."""),
+		F(_fig_traits, 250, "The three trait sets. Every combination is possible, and none affects survival or reproduction."),
+		T("""The presets track [b]colour only[/b] — one clear number is easier to read than three. The Playground tracks all three, and they drift independently."""),
 	]
 
 func _e_life() -> Array:
 	return [
 		T(_h("The life of a blob") + """
 
-•  A blob is born [b]small[/b] and grows over several seconds.
-•  When it reaches full size it gives a quick [b]glow[/b] — it is now an adult and can reproduce.
-•  When two adult blobs bump into each other they produce [b]one offspring[/b]. For each trait the baby inherits one parent's version at random — a 50/50 coin flip per trait.
-•  Every blob has a fixed [b]lifespan[/b] and eventually dies. Because lifespan is identical for all blobs, no trait gets an unfair advantage.
+•  Born [b]small[/b]; grows over a few seconds.
+•  At full size it [b]glows[/b] once — now an adult, can reproduce.
+•  Two adults bump → [b]one offspring[/b]. Each trait is a 50/50 coin flip between the parents.
+•  Every blob has the same [b]lifespan[/b] and eventually dies.
 
-Births, deaths, and which blobs happen to meet are all left to chance — and that chance is exactly what drives the drift."""),
-		F(_fig_inheritance, 215, "One trait, one coin flip. The child takes one parent's version at random, independently for each of the three traits."),
-		C("THINGS THE LAB DELIBERATELY DOES NOT HAVE", "No food, no predators, no mutation. Feeding would let some blobs grow faster than others, which is selection. Mutation would bring lost colours back, which would hide fixation. Each of these can be added later to turn the lab into an evolution model — but they're left out so that what you're watching is drift and nothing else.", COL_AMBER),
+Births, deaths, and who meets whom are all chance — and that chance is the drift."""),
+		F(_fig_inheritance, 215, "One trait, one coin flip. The child takes one parent's version at random, independently for each trait."),
+		C("DELIBERATELY MISSING", "No food, no predators, no mutation. Food would be selection. Mutation would hide fixation. They're left out so what you watch is drift and nothing else.", COL_AMBER),
 	]
 
 func _e_tracker() -> Array:
 	return [
 		T(_h("The allele tracker") + """
 
-The [b]Allele Tracker[/b] shows the live percentage of each trait variant in the current population, with the leading variant highlighted. The [b]Last Event[/b] panel shows how those percentages changed right after an event — green for variants that rose, red for those that fell."""),
-		F(_fig_tracker, 170, "Left: live shares, leader outlined. Right: the before-and-after change from the most recent event. A colour that reads 0% here has been lost from the population."),
-		T("""Watching the numbers wander, fix, and vanish is the whole point: that wandering is genetic drift. A few things to notice while you watch:
+The [b]Allele Tracker[/b] shows each trait variant's live share of the population, leader highlighted. The [b]Last Event[/b] panel shows how those shares changed right after an event — green rose, red fell."""),
+		F(_fig_tracker, 170, "Left: live shares, leader outlined. Right: the change from the most recent event. A colour reading 0% has been lost."),
+		T("""Things to notice:
 
-•  The bars never sit still, even when nothing dramatic is happening. That's the everyday drift of random births and deaths.
-•  When one bar hits 100%, the others are at 0% and will stay there — the population has fixed.
-•  After an event, the Last Event panel tells you how much of the change came from that one moment versus the slow background wander."""),
+•  The bars never sit still. That everyday wobble is drift.
+•  When one bar hits 100%, the others stay at 0% forever — fixation.
+•  After an event, Last Event separates that one moment from the slow background wander."""),
 	]
 
 func _e_speed() -> Array:
 	return [
 		T(_h("Speed and controls") + """
 
-The speed slider scales the whole simulation uniformly, so you can slow things down to study the action or speed them up to watch alleles fix over many generations. Speed never favors any trait — it only changes how fast time passes.
-
-Blob lifespans, growth, reproduction cooldowns, and event timers all scale together, so a run at 4× speed is the same run as at 1× — just faster. If you want to check a preset's ending is really down to chance, running it several times at high speed is the quickest way."""),
-		C("A GOOD HABIT", "Before you press anything, look at the tracker and write down the numbers. Then trigger the event, and compare. The Drift Events tab does this for you automatically; in the Playground you'll have to do it yourself.", COL_GREEN),
+The speed slider scales the whole simulation uniformly — five settings from 0.25× to 1.25×. It never favours any trait; it only changes how fast time passes. A run at high speed is the same run, just faster."""),
+		C("A GOOD HABIT", "Before pressing anything, write down the tracker numbers. Then trigger the event and compare. Drift Events does this for you; in the Playground you'll do it yourself.", COL_GREEN),
 	]
 
 func _e_modes() -> Array:
 	return [
 		T(_h("The three modes") + """
 
-[b]Presets[/b] — Six guided lessons, in order. Each one asks a question, runs on its own, then explains what happened. Every lesson opens with a [b]Predict First[/b] panel: write your guess down before you run it, because the surprise is where the learning is. Start here if you're new to drift.
+[b]Presets[/b] — Six guided lessons, in order. Each opens with a [b]Predict First[/b] panel: commit to a guess, then run it. Start here.
 
-[b]Drift Events[/b] — Four hands-on experiments about the individual random events that cause drift. Each one takes a reading of the population, lets you fire the event yourself, then compares the numbers before and after.
+[b]Drift Events[/b] — Four hands-on experiments. Take a reading, fire the event yourself, compare before and after.
 
-[b]Playground[/b] — The open sandbox. Start a population and do whatever you like: trigger events, change the speed, and watch the tracker. All three traits are tracked here, not just colour."""),
-		C("SUGGESTED ORDER", "Presets L1 → L6 first, then the four Drift Events, then the Playground. Every scenario is explained in detail in the [b]Scenarios[/b] section of this Info menu, so you can read about one before or after running it.", COL_BLUE),
+[b]Playground[/b] — The open sandbox. All three traits tracked, every tool unlocked."""),
+		C("SUGGESTED ORDER", "Presets L1 → L6, then the four Drift Events, then the Playground. Every scenario is explained in the [b]Scenarios[/b] section here.", COL_BLUE),
 	]
 
 # ===========================================================================
@@ -1751,72 +1781,72 @@ func _e_modes() -> Array:
 func _e_coin_flip() -> Array:
 	return [
 		T(_h("L1 — Randomness: The Basis of Genetic Drift") + "\n" + _q("Does a color have to be better to take over?")),
-		C("SETUP", "One pen. 12 blobs, exactly 4 red, 4 green, 4 blue. Population capped at 16. Nothing favours any colour.", COL_DIM),
-		T("""[b]What happens on screen.[/b] The blobs grow up, start bumping into each other, and the colour graph begins to wobble. For a while it's close. Then one colour edges ahead, a second gets squeezed out, and eventually a single colour reaches 100% and the run ends. Which colour wins is different every time.
+		C("SETUP", "One pen. 12 blobs, 4 of each colour, capped at 16. Nothing favours any colour.", COL_DIM),
+		T("""[b]On screen.[/b] The blobs grow up, bump, and the colour graph wobbles. One colour edges ahead, another gets squeezed out, and eventually one reaches 100%. Which one is different every time.
 
-Watch the graph rather than the blobs: the wobble is drift happening in real time, and the moment a band disappears is a colour being lost forever."""),
-		F(_fig_three_color, 210, "The three colours' shares over one run, stacked. Every colour starts at a third; by the end one has taken everything. Run it again and a different colour may win."),
-		C("THE CONCEPT", "A trait doesn't need to be better to take over a population. Pure chance — which blobs happen to meet, which happen to be adults at the same moment, which version the coin flip hands out — is enough on its own. This is the foundation every other lesson builds on.", COL_BLUE),
-		C("WATCH FOR", "The first colour to drop out. Notice that it usually isn't the one that was behind at the start — early leads mean very little. Also watch how the last stretch accelerates: once a colour is down to one or two blobs, a single unlucky death ends it.", COL_AMBER),
-		C("COMMON MIX-UP", "\"Blue won, so blue must have been better somehow.\" No — the rules are identical for all three. Run it five times and count the winners. If it were an advantage, the same colour would win every time.", COL_RED),
+Watch the graph, not the blobs. The wobble is drift; a band vanishing is a colour lost forever."""),
+		F(_fig_three_color, 210, "The three colours' shares over one run. Each starts at a third; by the end one has everything."),
+		C("THE CONCEPT", "A trait doesn't need to be better to take over. Chance — who meets whom, who's an adult when, which way the coin flips — is enough. Every other lesson builds on this.", COL_BLUE),
+		C("WATCH FOR", "The first colour to drop out — it's often not the one that was behind early. And how the end accelerates: at one or two blobs, a single death finishes it.", COL_AMBER),
+		C("COMMON MIX-UP", "\"Blue won, so blue must have been better.\" No — identical rules. Run it five times and count winners. An advantage would win every time.", COL_RED),
 	]
 
 func _e_long_shot() -> Array:
 	return [
 		T(_h("L2 — The Long Shot") + "\n" + _q("Can a rare color beat a common one on luck alone?")),
-		C("SETUP", "One pen. 12 blobs, but this time 8 of one colour and 2 each of the other two. Same rules as L1. A tally of winners is kept across every run in the session.", COL_DIM),
-		T("""[b]What happens on screen.[/b] Most of the time the common colour wins, and it can look inevitable. But every so often one of the rare colours claws its way up and takes over instead — and when it does, nothing about that run was different. It was just its turn.
+		C("SETUP", "One pen. 12 blobs: 8 of one colour, 2 each of the others. Same rules as L1. A tally of winners is kept across the session.", COL_DIM),
+		T("""[b]On screen.[/b] Usually the common colour wins and it looks inevitable. Every so often a rare colour takes over instead — and nothing about that run was different. It was its turn.
 
-The scoreboard is the real experiment. Each run adds one tick to the winning colour, and the [b]observed[/b] shares slowly settle toward the [b]predicted[/b] ones."""),
-		F(_fig_fixation_prob, 160, "The rule this preset tests: an allele's chance of taking over equals its starting share. 8 of 12 means about a 67% chance; 2 of 12 means about 17%. Rare, not doomed."),
-		C("THE CONCEPT", "Under pure drift, an allele's probability of eventually fixing is exactly its current frequency. Rarity lowers the odds but never removes them. Over many runs, the tally converges on the starting proportions — which is a way of measuring that the lab really is drift and nothing else.", COL_BLUE),
-		C("WATCH FOR", "How close the tally gets after ten runs versus thirty. Small numbers of runs will be lumpy; that lumpiness is itself sampling error, the same thing that drives drift inside a run.", COL_AMBER),
-		C("COMMON MIX-UP", "\"The rare colour won, so it must have had a hidden edge.\" A 1-in-6 event happens one time in six. That's not evidence of anything except that six runs went by.", COL_RED),
+The scoreboard is the real experiment: the observed win rates slowly settle toward the predicted ones."""),
+		F(_fig_fixation_prob, 160, "The rule this preset tests: chance of taking over equals starting share. 8 of 12 ≈ 67%; 2 of 12 ≈ 17%. Rare, not doomed."),
+		C("THE CONCEPT", "Under pure drift, an allele's chance of fixing equals its current frequency. Over many runs the tally converges on the starting proportions — which is how you check the lab really is pure drift.", COL_BLUE),
+		C("WATCH FOR", "How close the tally is after ten runs versus thirty. Few runs are lumpy; that lumpiness is sampling error too.", COL_AMBER),
+		C("COMMON MIX-UP", "\"The rare colour won, so it had a hidden edge.\" A 1-in-6 event happens one time in six.", COL_RED),
 	]
 
 func _e_small_large() -> Array:
 	return [
 		T(_h("L3 — Small vs Large") + "\n" + _q("Why does population size change how fast drift works?")),
-		C("SETUP", "Two walled-off pens running side by side from identical starting frequencies. The left pen holds a small population, the right a large one. The pens are sized so blob density is the same in both — only the head count differs.", COL_DIM),
-		T("""[b]What happens on screen.[/b] The small pen lurches. Its bar chart swings by big steps, colours drop out one by one, and it usually fixes on a single colour well before the run is over. The large pen's bars barely move by comparison. It may not fix at all in the time available, and if it does, it takes far longer."""),
-		F(_fig_popsize, 210, "Identical rules, identical starting mix, identical number of generations. Only the population size differs — and it changes everything about how fast the frequencies move."),
-		C("THE CONCEPT", "Drift is sampling error, and big samples are more accurate. Each generation in the large pen is a large random draw from the previous one, so it lands close to the true proportions. The small pen's draws are tiny and wild. Time to fixation grows roughly in proportion to population size.", COL_BLUE),
-		C("WATCH FOR", "Which pen settles first — and which pen's winner was easier to guess in advance. In the small pen, even a colour that started behind has a real shot. In the large pen the starting leader almost always holds on, because it takes a lot of bad luck to overturn a lead when each step is small.", COL_AMBER),
-		C("COMMON MIX-UP", "\"The big population is more stable, so it's better at keeping the fittest colour.\" There is no fittest colour. The large pen is better at keeping [i]whatever it started with[/i], good or bad. That's stability, not selection.", COL_RED),
+		C("SETUP", "Two walled-off pens, identical starting mix. Left holds a small population, right a large one. Pens are sized so crowding is equal — only head count differs.", COL_DIM),
+		T("""[b]On screen.[/b] The small pen lurches: big swings, colours dropping out, usually fixed well before time is up. The large pen barely moves and may not fix at all."""),
+		F(_fig_popsize, 210, "Identical rules, mix, and time. Only population size differs — and it changes everything about how fast the frequencies move."),
+		C("THE CONCEPT", "Drift is sampling error, and big samples are accurate. Each generation in the large pen is a large draw, so it lands close to the truth. The small pen's draws are tiny and wild.", COL_BLUE),
+		C("WATCH FOR", "Which pen settles first, and which pen's winner was easier to guess. In the large pen the starting leader almost always holds on.", COL_AMBER),
+		C("COMMON MIX-UP", "\"The big population is better at keeping the fittest colour.\" There is no fittest colour. It's better at keeping [i]whatever it started with[/i]. That's stability, not selection.", COL_RED),
 	]
 
 func _e_parallel() -> Array:
 	return [
 		T(_h("L4 — Parallel Worlds") + "\n" + _q("Same start, same rules — same ending?")),
-		C("SETUP", "Nine tiny sealed populations in a 3×3 grid, each starting with exactly 2 red, 2 green, 2 blue. They run simultaneously under identical rules. Each pen shows its own stacked colour bar; when a pen fixes, its border turns the winner's colour. A cross-run tally counts endings.", COL_DIM),
-		T("""[b]What happens on screen.[/b] Nine identical worlds start moving, and within a few seconds they are already visibly different. One fixes on red early, another on green, a third takes ages and lands on blue. By the end the grid is a patchwork. Nothing predicted which cell would end which colour."""),
-		F(_fig_parallel, 230, "Nine identical starts, nine independent endings. Over many sessions the tally settles near one third each — but any single grid can be lopsided."),
-		C("THE CONCEPT", "Isolated populations diverge under drift even with identical starting conditions and identical environments. This is the main non-adaptive reason separated populations of the same species come to differ — and it's why one population's outcome tells you nothing about what \"should\" happen.", COL_BLUE),
-		C("WATCH FOR", "How many of the nine land on the same colour. Then ask what nine worlds would look like if a colour genuinely were better: they'd all end the same way. The scatter is the evidence that no colour is favoured.", COL_AMBER),
-		C("COMMON MIX-UP", "\"Five of nine went blue — blue must be the strong one.\" Five of nine is well within what a fair three-way split produces. The session-long tally is the thing to trust, and it heads for a third each.", COL_RED),
+		C("SETUP", "Nine tiny sealed pens in a 3×3 grid, each starting 2 red, 2 green, 2 blue. When a pen fixes its border turns the winner's colour. A cross-run tally counts endings.", COL_DIM),
+		T("""[b]On screen.[/b] Nine identical worlds start moving and within seconds look different. One fixes red early, another green, a third takes ages and lands blue. By the end the grid is a patchwork."""),
+		F(_fig_parallel, 230, "Nine identical starts, nine independent endings. Over many sessions the tally settles near a third each."),
+		C("THE CONCEPT", "Isolated populations diverge under drift even with identical starts and identical environments. One population's outcome tells you nothing about what \"should\" happen.", COL_BLUE),
+		C("WATCH FOR", "How many of nine land on the same colour. If a colour were genuinely better, all nine would end the same way. The scatter is the evidence.", COL_AMBER),
+		C("COMMON MIX-UP", "\"Five of nine went blue — blue must be strong.\" Five of nine is well within a fair three-way split. Trust the session tally.", COL_RED),
 	]
 
 func _e_gene_flow() -> Array:
 	return [
 		T(_h("L5 — Gene Flow") + "\n" + _q("What happens when two isolated groups start mixing?")),
-		C("SETUP", "Two pens sharing a wall with a gate in the middle. The run begins sealed for about a minute, then the gate cycles open and shut on a timer. A blob's population is decided by which pen it's physically in, so crossing the gate genuinely switches which side it breeds with. The graph plots how [i]different[/i] the two pens are, not the raw colour shares.", COL_DIM),
-		T("""[b]What happens on screen.[/b] With the gate shut, the two pens drift apart on their own paths and the difference line climbs. When the gate opens, a few blobs wander across — the crossings counter ticks up — and the line drops sharply as the two mixes are dragged back toward each other. Shut the gate and the line starts climbing again. A colour that had vanished from one pen can reappear when a migrant carries it in."""),
-		F(_fig_gene_flow, 210, "Grey eras are gate closed, green are gate open. Isolation lets the pens drift apart; even a trickle of migration pulls them back together. Peak vs final difference is the number the end card reports."),
-		C("THE CONCEPT", "Gene flow — migration followed by breeding — works against drift. It homogenises populations and refills lost diversity. It takes surprisingly little: roughly one migrant per generation is enough to stop two populations fixing on different alleles. Isolation, therefore, is a key ingredient in populations diverging.", COL_BLUE),
-		C("WATCH FOR", "The first ten seconds after the gate opens. Also watch whether a colour that was extinct on one side comes back — if it does, that migrant single-handedly reversed a loss that drift alone could never undo.", COL_AMBER),
-		C("COMMON MIX-UP", "\"The gate opened and nothing crossed, so gene flow didn't happen.\" Correct — and the line won't drop. Gene flow needs actual movement plus actual breeding. The end card handles this case explicitly.", COL_RED),
+		C("SETUP", "Two pens sharing a wall with a gate. Sealed for the first stretch, then the gate cycles open and shut. Your population is whichever pen you're in. The graph plots how [i]different[/i] the pens are.", COL_DIM),
+		T("""[b]On screen.[/b] Gate shut: the pens drift apart and the difference line climbs. Gate open: a few blobs cross and the line drops sharply. Shut again: it climbs. A colour extinct in one pen can reappear when a migrant carries it in."""),
+		F(_fig_gene_flow, 210, "Grey eras are gate closed, green are open. Isolation lets the pens drift apart; even a trickle of migration pulls them back."),
+		C("THE CONCEPT", "Gene flow works against drift. It homogenises populations and refills lost diversity. About one migrant per generation is enough to stop two populations fixing on different alleles.", COL_BLUE),
+		C("WATCH FOR", "The first ten seconds after the gate opens. And whether a colour extinct on one side comes back — one migrant reversing a loss drift alone could never undo.", COL_AMBER),
+		C("COMMON MIX-UP", "\"The gate opened and nothing crossed, so gene flow didn't happen.\" Correct — and the line won't drop. Gene flow needs actual movement plus actual breeding.", COL_RED),
 	]
 
 func _e_drift_vs_sel() -> Array:
 	return [
 		T(_h("L6 — Drift vs Selection") + "\n" + _q("How is a real advantage different from pure luck?")),
-		C("BREAKS THE NO-SELECTION RULE", "This is the one preset that deliberately violates the lab's core constraint. In the right pen only, red blobs live noticeably longer than the others — and they're ringed in gold so you can see who's favoured. Everything else is identical: same pen size, same starting mix, same head count.", COL_RED),
-		C("SETUP", "Two equal pens, equal populations, equal starting mixes. Left pen: pure drift. Right pen: red has a survival advantage. A cross-run tally records each pen's winner every run.", COL_DIM),
-		T("""[b]What happens on screen.[/b] The left pen does what L1 does: wanders and lands on some colour. The right pen looks different in a way that's hard to describe from a single run but obvious over several — red keeps climbing. Not always winning, especially when it starts unlucky, but climbing, with a direction to it that the left pen never has."""),
-		F(_fig_drift_vs_selection, 210, "Left: drift, no advantage — five runs, five different stories. Right: red survives better — five runs, one story. The consistency, not the outcome, is the signature of selection."),
-		C("THE CONCEPT", "Drift and selection both change allele frequencies. Only selection has a direction. A single run of drift can look exactly like selection, so the test is repetition: drift's winners scatter, selection's pile up. This is the difference the whole lab rests on — and it's why every other scenario is careful to have no advantage anywhere.", COL_BLUE),
-		C("WATCH FOR", "The tally after a few runs. The drift column scatters across all three colours; the selection column stacks on red. Then think about the third Predict First question: if you shrank the right pen, would red's advantage matter more or less? (Less — in a small population drift's noise can drown a modest advantage.)", COL_AMBER),
-		C("COMMON MIX-UP", "\"Red lives longer, so red always wins.\" No. Selection tilts the odds; it doesn't fix the result. A red that starts rare in a small pen can still be lost to bad luck before its advantage has time to matter.", COL_RED),
+		C("BREAKS THE NO-SELECTION RULE", "The one preset that deliberately violates the lab's rule. In the right pen only, red blobs live longer — ringed in gold so you can see who's favoured. Everything else is identical.", COL_RED),
+		C("SETUP", "Two equal pens. Left: pure drift. Right: red has a survival advantage. A cross-run tally records each pen's winner.", COL_DIM),
+		T("""[b]On screen.[/b] The left pen wanders and lands somewhere. The right pen has a direction: red keeps climbing. Not always winning, but climbing, run after run."""),
+		F(_fig_drift_vs_selection, 210, "Left: drift — five runs, five stories. Right: red survives better — five runs, one story. Consistency is the signature of selection."),
+		C("THE CONCEPT", "Only selection has a direction. A single run of drift can look like selection, so the test is repetition: drift's winners scatter, selection's pile up.", COL_BLUE),
+		C("WATCH FOR", "The tally after a few runs: drift column scatters, selection column stacks on red. Then: if you shrank the right pen, would red's edge matter more or less? (Less — noise drowns weak selection.)", COL_AMBER),
+		C("COMMON MIX-UP", "\"Red lives longer, so red always wins.\" No. Selection tilts the odds, it doesn't fix the result. A rare red in a small pen can still be lost before its edge matters.", COL_RED),
 	]
 
 # ===========================================================================
@@ -1825,44 +1855,44 @@ func _e_drift_vs_sel() -> Array:
 func _e_unlucky() -> Array:
 	return [
 		T(_h("One Unlucky Death") + "\n" + _q("What is the smallest possible unit of drift?")),
-		C("SETUP", "A running population. Each press kills one blob chosen at random, and one surviving blob immediately has a child. The population never changes size. You can press it as many times as you like; the panel shows the colour mix before and after.", COL_DIM),
-		T("""[b]What happens on screen.[/b] A blob vanishes. A baby appears next to a random survivor. The population count is unchanged, but the colour percentages have shifted by one blob's worth. Press it twenty times and the shifts pile up. Keep going and, sooner or later, a colour drops to zero and is gone."""),
-		F(_fig_moran, 170, "One random death, one random birth to fill the gap. Twelve blobs before and twelve after — the only thing that moved is the colour mix, by exactly one."),
-		C("THE CONCEPT", "This is the Moran model, the simplest mathematical description of drift: one individual dies at random, one individual reproduces at random, repeat. Every random walk in the drift graphs is built out of steps exactly like this one. Drift isn't a special event; it's what a very large number of these tiny, blind steps adds up to.", COL_BLUE),
-		C("WATCH FOR", "Which colour loses its last blob first. It's usually the one that was already rarest, but not always — and note that it's never the \"worst\" colour, because there is no worst. Also watch how the size of each step is bigger when the population is small.", COL_AMBER),
-		C("COMMON MIX-UP", "\"The population didn't shrink, so nothing really happened.\" The head count is the wrong thing to watch. The mix changed, and mix changes are permanent in a way head counts are not.", COL_RED),
+		C("SETUP", "12 blobs, nobody ages. Each press: one random blob dies, one random survivor has a child. Population never changes size.", COL_DIM),
+		T("""[b]On screen.[/b] A blob vanishes. A baby appears beside a random survivor. The count is unchanged; the mix has shifted by one blob. Press twenty times and the shifts pile up. Eventually a colour hits zero and is gone."""),
+		F(_fig_moran, 170, "One random death, one random birth. Twelve before, twelve after — only the colour mix moved, by exactly one."),
+		C("THE CONCEPT", "This is the Moran model, the simplest description of drift: one dies at random, one reproduces at random, repeat. Every drift curve is built from steps like this.", COL_BLUE),
+		C("WATCH FOR", "Which colour loses its last blob first. Usually the rarest, but not always — and never the \"worst\", because there is no worst.", COL_AMBER),
+		C("COMMON MIX-UP", "\"The population didn't shrink, so nothing happened.\" The mix changed, and mix changes are permanent in a way head counts are not.", COL_RED),
 	]
 
 func _e_disaster() -> Array:
 	return [
 		T(_h("Natural Disaster") + "\n" + _q("Can a random event that ignores colour still change the colour mix?")),
-		C("SETUP", "A running population. You aim a zone anywhere in the pen; a live readout shows what's currently inside it. Fire, and everything in the zone dies. The panel compares the colour mix before and after.", COL_DIM),
-		T("""[b]What happens on screen.[/b] As you move the zone around, the readout changes — and you'll notice it is rarely a fair mix. Because blobs are born beside their parents, families of the same colour tend to clump. Drop the zone on a clump and one colour takes most of the damage, even though the disaster itself has no idea what colour is."""),
-		F(_fig_disaster, 200, "The zone knows nothing about colour, only location. But location and colour are accidentally linked, because offspring appear next to their parents."),
-		C("THE CONCEPT", "Drift doesn't require the random event to be about the trait. A flood, a fire, a landslide kills whoever happens to be in its path, and whoever happens to be in its path is, by accident of geography and family, not a representative sample. This is drift with a spatial cause — the same sampling error, delivered by a map instead of a coin.", COL_BLUE),
-		C("WATCH FOR", "Try aiming at a mixed area versus a clumped one, and compare the before/after panel. Then think about why real populations are clumped too — related individuals live near each other almost everywhere in nature.", COL_AMBER),
-		C("COMMON MIX-UP", "\"I killed mostly red, so I selected against red.\" Selection would mean red died [i]because it was red[/i]. Here red died because it was standing in the wrong place. Aim somewhere else and it'll be green's turn.", COL_RED),
+		C("SETUP", "Arm a zone, move it around the pen — a readout shows what's inside. Click to strike; everything inside dies. Survivors breed back. Before/after is compared.", COL_DIM),
+		T("""[b]On screen.[/b] As you move the zone, the readout is rarely a fair mix. Offspring are born beside their parents, so same-colour families clump. Drop the zone on a clump and one colour takes most of the damage — though the disaster has no idea what colour is."""),
+		F(_fig_disaster, 200, "The zone knows only location. But location and colour are accidentally linked, because offspring appear next to their parents."),
+		C("THE CONCEPT", "Drift doesn't need the random event to be about the trait. A flood kills whoever is in its path, and whoever is in its path is not a representative sample. Same sampling error, delivered by a map instead of a coin.", COL_BLUE),
+		C("WATCH FOR", "Aim at a mixed area, then a clumped one, and compare before/after. Then think about why real populations are clumped too.", COL_AMBER),
+		C("COMMON MIX-UP", "\"I killed mostly red, so I selected against red.\" Selection means red died [i]because it was red[/i]. Here red died because it was standing in the wrong place.", COL_RED),
 	]
 
 func _e_bottleneck() -> Array:
 	return [
 		T(_h("Bottleneck") + "\n" + _q("If the population recovers, is anything really lost?")),
-		C("SETUP", "A running population. Fire the event and most blobs die at random, leaving a handful of survivors. Those survivors then breed the population back up to full size. The panel tracks the colour mix before the crash, right after it, and once the numbers have recovered.", COL_DIM),
-		T("""[b]What happens on screen.[/b] The pen empties almost entirely. Two, three, maybe five blobs remain. Then, slowly, they grow up and start breeding, and the pen fills again. The head count comes all the way back. But look at the colours: the recovered population is made entirely of whatever the survivors happened to be. If no green survived, there is no green — and there never will be again."""),
+		C("SETUP", "Fire: most blobs die at random, a few survive. Survivors breed the pen back to full. Before / after crash / after recovery are all tracked.", COL_DIM),
+		T("""[b]On screen.[/b] The pen empties to two or five blobs. Slowly it refills. The head count comes all the way back — but the recovered population is made of whatever the survivors were. No green survived? No green, ever again."""),
 		F(_fig_bottleneck_founder, 285, "Top row is the bottleneck. A random crash leaves a few survivors; they breed the numbers back, but any colour they didn't carry is gone."),
-		F(_fig_recovery, 190, "Population size recovers fully. Genetic diversity — the number of alleles still present — drops at the crash and stays there."),
-		C("THE CONCEPT", "A bottleneck is drift at maximum strength. For a few generations the population is tiny, so sampling error is enormous, and the alleles that make it through are a small random subset of what existed before. Recovery restores numbers but not variation, because every new individual descends from the same few survivors.", COL_BLUE),
-		C("WATCH FOR", "Compare the mix before the crash with the mix after recovery — not right after the crash, but once the numbers are back. That's the honest measure of what the bottleneck cost. Then compare to Founder Effect: same loss of diversity, but for a different reason.", COL_AMBER),
-		C("COMMON MIX-UP", "\"The survivors were the tough ones.\" They were the lucky ones. The crash chose at random. In real bottlenecks some survivors are indeed tougher — but a lot of what survives is simply whoever happened to be standing out of the way, and the diversity lost is lost regardless.", COL_RED),
+		F(_fig_recovery, 190, "Population size recovers fully. The number of alleles present drops at the crash and stays there."),
+		C("THE CONCEPT", "A bottleneck is drift at maximum strength. Recovery restores numbers but not variation, because every new individual descends from the same few survivors.", COL_BLUE),
+		C("WATCH FOR", "Compare the mix before the crash with the mix [i]after recovery[/i] — that's the honest measure of what it cost.", COL_AMBER),
+		C("COMMON MIX-UP", "\"The survivors were the tough ones.\" They were the lucky ones. The crash chose at random.", COL_RED),
 	]
 
 func _e_founder() -> Array:
 	return [
 		T(_h("Founder Effect") + "\n" + _q("What happens when a few individuals start a new population?")),
-		C("SETUP", "A running population on the mainland and an empty island beside it. Fire the event and a few randomly chosen blobs cross to the island and start breeding there. Nobody dies — the mainland carries on exactly as before, so you can compare the two side by side.", COL_DIM),
-		T("""[b]What happens on screen.[/b] A handful of blobs appear on the island and begin to multiply. The mainland doesn't blink. Within a short while the island has a full population — but its colour mix is nothing like the mainland's. Often a colour is missing outright. Sometimes a colour that was rare on the mainland is the majority on the island, because two of the three founders happened to carry it."""),
-		F(_fig_bottleneck_founder, 285, "Bottom row is the founder effect. The mainland is untouched; a small random sample leaves and grows into a population that carries only what the founders carried."),
-		C("THE CONCEPT", "A new population started by a few individuals inherits only the alleles those individuals had, at whatever frequencies chance dealt them. Because the founding group is small, drift is intense in the first generations, and the new population's mix can end up far from the source. This is the founder effect, and it's why island populations so often differ from their mainland relatives.", COL_BLUE),
-		C("WATCH FOR", "Which colours the island is missing, and whether the island's leading colour matches the mainland's. Then run it again with a different set of founders — the island's mix will be different every time, even though the mainland was the same.", COL_AMBER),
-		C("BOTTLENECK VS FOUNDER", "These two are easy to confuse because they produce similar-looking populations. The difference is what happens to the original group. In a [b]bottleneck[/b], the population itself crashes and the survivors are all that's left. In a [b]founder effect[/b], nothing dies at all — a few individuals leave and start somewhere new, and the source population continues as before. Both lose diversity through the same mechanism: a small sample can't carry everything the big one had.", COL_RED),
+		C("SETUP", "A full mainland and an empty island. Fire: a few random blobs cross to the island and start breeding. Nobody dies — the mainland carries on unchanged.", COL_DIM),
+		T("""[b]On screen.[/b] A handful land on the island and multiply. Soon the island is full — but its mix is nothing like the mainland's. Often a colour is missing outright. Sometimes a rare mainland colour is the island majority, because two of three founders carried it."""),
+		F(_fig_bottleneck_founder, 285, "Bottom row is the founder effect. The mainland is untouched; a small random sample grows into a population carrying only what the founders carried."),
+		C("THE CONCEPT", "A new population inherits only what its founders had, at whatever frequencies chance dealt. Small founding group → intense early drift → a mix far from the source. This is why island populations differ from the mainland.", COL_BLUE),
+		C("WATCH FOR", "Which colours the island is missing, and whether its leader matches the mainland's. Run again with different founders — the island differs every time.", COL_AMBER),
+		C("BOTTLENECK VS FOUNDER", "In a [b]bottleneck[/b] the population itself crashes. In a [b]founder effect[/b] nothing dies — a few leave and the source continues. Both lose diversity the same way: a small sample can't carry everything.", COL_RED),
 	]

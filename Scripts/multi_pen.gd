@@ -229,8 +229,7 @@ func _set_gated_visible(vis: bool):
 		if n:
 			n.visible = false
 	_hide_playground_only_controls()
-	if help_button:                 # HELP BUTTON — base isn't called, so show it here
-		help_button.visible = vis
+	_set_hud_visible(vis)          # About / Info buttons + goal strip — base isn't called
 	if caption_box:
 		caption_box.visible = vis
 	for n in ui_nodes:

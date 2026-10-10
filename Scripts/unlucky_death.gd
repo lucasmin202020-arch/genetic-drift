@@ -51,29 +51,38 @@ func _rolled_lifespan() -> float:
 func _preset_title() -> String:
 	return "One Unlucky Death"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "One random death barely moves the mix. Hundreds of them wipe out whole colors."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "In every generation, some individuals leave more descendants than others purely by chance — one gets eaten before it breeds, another happens to have an extra litter. None of that has to do with which alleles they carry. Over many generations these accidents accumulate, and the frequency of each allele wanders up and down. That wandering is [b]genetic drift[/b], and it is one of the basic mechanisms of evolution alongside natural selection, mutation, and migration.\n\n"
+		"[b]This is drift at its smallest: one random death, one random birth.[/b]\n"
+		+ "Each press nudges the color mix by one blob. The nudges have no direction, but they pile up "
+		+ "until a color hits zero — and once it's gone, it can't come back."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"In every generation, some individuals leave more descendants than others purely by chance — one gets eaten before it breeds, another happens to have an extra litter. None of that has to do with which alleles they carry. Over many generations these accidents accumulate, and the frequency of each allele wanders up and down. That wandering is [b]genetic drift[/b], and it is one of the basic mechanisms of evolution alongside natural selection, mutation, and migration.\n\n"
 		+ "Drift is much stronger in small populations. If one individual in a population of 10 dies without offspring, a tenth of the gene pool is gone in a single step. In a population of 100, that same death removes only one percent, so a large population is buffered against chance in a way a small one is not.\n\n"
 		+ "Drift has two possible endings for any allele. It can rise to 100% of the population, which is called [b]fixation[/b], or it can fall to 0% and be lost. Once an allele is lost it cannot return without mutation or migration, because offspring can only inherit alleles their parents still carry. Drift does not care which alleles are useful; it can fix a harmful one or eliminate a beneficial one.\n\n"
 		+ "Population geneticists study this with a deliberately stripped-down model. In the [b]Moran model[/b] (P. A. P. Moran, 1958), a population of fixed size changes by exactly one event at a time: one individual chosen at random dies, and one individual chosen at random reproduces to replace it. Nothing else happens. Under this model, an allele's probability of eventually taking over the whole population is simply its current share — an allele at 25% has a one-in-four chance of winning, and it will win or be lost eventually, never settle in between. This scenario is the Moran model, one step per button press.\n\n"
-		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Moran, P. A. P. (1958), \"Random processes in genetics\", Mathematical Proceedings of the Cambridge Philosophical Society 54(1).[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Moran, P. A. P. (1958), \"Random processes in genetics\", Mathematical Proceedings of the Cambridge Philosophical Society 54(1).[/i]"
+	)
 
-# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
-# pause popup opened by the help button that DriftPreset puts in the panel.
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "The pen holds 12 blobs, 4 of each color, and that is also its cap, so no ordinary births can occur. Ageing is switched off, so nobody dies on their own. Left alone, nothing changes. Each press of the button does two things in order: one blob chosen at random dies, then one of the survivors, also chosen at random, has a child of its own color next to it. The population is back at 12 immediately; only the color mix has moved. Every blob has the same chance of being the one that dies and the same chance of being the parent. Auto-step presses the button for you about twice a second. The run ends when only one color is left, and the results card tallies how many deaths and births each color got.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Press the button ten times, one at a time, watching the graph after each press.\n"
-		+ "2.  Write down which color you think will win, and how many more presses it will take.\n"
-		+ "3.  Turn on Auto-step and let it run to fixation. Check your prediction.\n"
-		+ "4.  Run it three times. Note the winner and the number of steps each time.\n"
-		+ "5.  On the results card, compare deaths and births by color. Ask whether the winner actually got a better deal, or just a luckier one."
+		"[b]How it works[/b]\n"
+		+ "•  12 blobs, 4 per color. Nobody ages, so nothing changes on its own.\n"
+		+ "•  Each press: one random blob dies, one random survivor has a child.\n"
+		+ "•  Auto-step presses for you. The run ends at one color.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Press ten times, watching the graph after each.\n"
+		+ "2.  Guess the winner and how many more presses it needs.\n"
+		+ "3.  Turn on Auto-step and check your guess."
 	)
 
 func _preset_questions() -> Array:
@@ -183,7 +192,7 @@ func _event_summary() -> String:
 	var present: int = _colors_present()
 
 	if present > 1:
-		return "[b]You stopped after %d steps with %d colors still alive.[/b]\n\nEvery step was a fair coin: any blob could die, any survivor could be the parent. The population never changed size. Look at the graph — the lines wandered with nothing steering them, and that wandering is drift.\n\nRun it again with Auto-step on and let it go all the way. One color always wins eventually, and it's never the same one twice." % [
+		return "[b]You stopped after %d steps with %d colors still alive.[/b]\n\nEvery step was a fair coin: any blob could die, any survivor could be the parent. The lines wandered with nothing steering them — that wandering is drift.\n\nRun it again with Auto-step on and let it finish. One color always wins eventually." % [
 			fire_count, present]
 
 	var winner := 0
@@ -195,7 +204,7 @@ func _event_summary() -> String:
 		if counts[c] == 0:
 			lost.append(preset_color_names[c])
 
-	return "[b]%s took over after %d steps.[/b]\n\nEvery one of those steps was a fair coin: any blob could die, any survivor could be the parent. No color was ever better than another, and the population was twelve blobs the whole way through.\n\n%s went to zero and stayed there. Once a color is gone, no number of further presses brings it back, because a parent can only pass on a color that still exists.\n\nThis is genetic drift stripped to its smallest possible part. A single death changes almost nothing, which is exactly why drift is easy to miss — and %d of them was enough to wipe out two thirds of this population's diversity.\n\nRun it again. A different color will probably win, and it'll probably take a different number of steps." % [
+	return "[b]%s took over after %d steps.[/b]\n\nEvery step was a fair coin: any blob could die, any survivor could be the parent. No color was ever better, and the population was twelve the whole way.\n\n%s went to zero and stayed there — a parent can only pass on a color that still exists.\n\nA single death changes almost nothing. %d of them wiped out two thirds of this population's diversity. Run it again: a different color will probably win." % [
 		preset_color_names[winner], fire_count, " and ".join(lost), fire_count]
 
 # ---------------------------------------------------------------------------

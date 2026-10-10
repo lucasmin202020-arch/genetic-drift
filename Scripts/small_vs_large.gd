@@ -287,26 +287,38 @@ func _process(delta):
 func _preset_title() -> String:
 	return "Small vs Large"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "Drift is fast and wild in small populations, slow and steady in large ones."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "Genetic drift happens in every finite population, but its strength depends heavily on how many individuals there are. The reason is sampling. Each generation's alleles are a random draw from the previous generation's, and small samples are noisy: flip a coin 10 times and getting 7 heads is unremarkable, but flip it 1,000 times and getting 700 heads is essentially impossible. A small population is the 10-flip case. A large one is the 1,000-flip case.\n\n"
+		"[b]Small populations drift hard; large ones barely move.[/b]\n"
+		+ "Each generation is a random sample of the last. Flip 10 coins and 7 heads is normal; flip 1,000 and 700 is impossible. "
+		+ "One lucky birth swings a small pen a lot and a large pen hardly at all."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"Genetic drift happens in every finite population, but its strength depends heavily on how many individuals there are. The reason is sampling. Each generation's alleles are a random draw from the previous generation's, and small samples are noisy: flip a coin 10 times and getting 7 heads is unremarkable, but flip it 1,000 times and getting 700 heads is essentially impossible. A small population is the 10-flip case. A large one is the 1,000-flip case.\n\n"
 		+ "Put concretely: if one individual in a population of 10 dies without offspring, a tenth of the gene pool vanishes in a single event. In a population of 100, the same accident removes one percent. Each chance event moves allele frequencies far more in a small population, so the frequencies swing widely from generation to generation. In a large population those same accidents mostly cancel out, and the frequencies stay close to where they started.\n\n"
 		+ "This also changes how long drift takes to finish. The expected time for a neutral allele to reach fixation grows in proportion to population size — roughly four times the population size, in generations, for a diploid population. A tiny population can fix an allele in a handful of generations; a population of millions may not fix a neutral allele for longer than the species exists.\n\n"
 		+ "The rule is the reason conservation biologists treat small population size as a danger in itself, separate from any immediate threat. Below a few dozen breeding individuals, drift strips away genetic variation faster than mutation can replace it, and that variation is what a population needs to adapt when its environment changes.\n\n"
-		+ "[i]Sources: Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Genetic drift\"; Kimura, M. & Ohta, T. (1969), \"The average number of generations until fixation of a mutant gene in a finite population\", Genetics 61(3): 763–771.[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Genetic drift\"; Kimura, M. & Ohta, T. (1969), \"The average number of generations until fixation of a mutant gene in a finite population\", Genetics 61(3): 763–771.[/i]"
+	)
 
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "Two walled-off pens run at the same time. The small pen starts with 9 blobs and can hold up to 12; the large pen starts with 27 and can hold up to 36. Both start at exactly one third of each color, and color does nothing in either pen. The pens are drawn at different sizes on purpose: each pen's area matches its population, so the blobs are equally crowded in both and meet each other at the same rate. Every offspring inherits one parent's color at random. Each pen has a colored bar along its bottom edge showing its current mix, and its own tracker and graph in the side panel. The run ends when both pens have settled on a single color (or died out), or when time runs out. The results card shows how far each pen's mix moved from its start as a \"total drift\" percentage.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Before pressing Begin, predict which pen settles on one color first.\n"
-		+ "2.  Once the blobs mature, watch the two bottom bars for 20 seconds. Note which one moves more.\n"
-		+ "3.  Compare the two graphs in the panel — look at how jagged each set of lines is, not just where they end.\n"
-		+ "4.  Run it three times. Record each pen's total drift from the results card, and check whether the small pen's is larger every time."
+		"[b]How it works[/b]\n"
+		+ "•  Small pen: 9 blobs (cap 12). Large pen: 27 (cap 36). Same crowding.\n"
+		+ "•  Both start a third of each color. Color does nothing.\n"
+		+ "•  The run ends when both pens settle, or time runs out.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Predict which pen settles on one color first.\n"
+		+ "2.  Watch the two bottom bars for 20 seconds. Which moves more?\n"
+		+ "3.  Run it three times. Compare each pen's total drift."
 	)
 
 func _preset_questions() -> Array:
@@ -398,8 +410,7 @@ func _set_gated_visible(vis: bool):
 		if n:
 			n.visible = false      # commands + inherited tracker stay hidden
 	_hide_playground_only_controls()
-	if help_button:                # base isn't called, so show the help button here
-		help_button.visible = vis
+	_set_hud_visible(vis)          # About / Info buttons + goal strip — base isn't called
 	if caption_box:
 		caption_box.visible = vis
 	for n in dual_ui_nodes:
@@ -638,7 +649,7 @@ func _dual_summary() -> String:
 	if d_small <= d_large:
 		head = "[b]This time the small pen moved %.0f%% and the large pen %.0f%%.[/b]\n\nThat's the exception, not the rule — drift is random, so any single run can surprise you. Run it again and the usual pattern should show." % [d_small, d_large]
 
-	return "%s\n\nBoth pens started identical: a third of each color, no color favoured, same crowding. The only difference was [b]how many blobs there were[/b].\n\n•  Small (%d): %s\n•  Large (%d): %s\n\nDrift strength scales as [b]1 ÷ population size[/b]. In a small population a few chance births and deaths swing the percentages hard. In a large one those same accidents average out, so the frequencies stay put.\n\nThis is why small, isolated populations lose genetic diversity fast — and why it's one of the first things conservation biologists worry about." % [
+	return "%s\n\nBoth pens started identical. The only difference was [b]how many blobs there were[/b].\n\n•  Small (%d): %s\n•  Large (%d): %s\n\nDrift strength scales as [b]1 ÷ population size[/b]: a few chance births swing a small pen hard, while in a large pen they average out." % [
 		head, POP_CAPS[0], s_state, POP_CAPS[1], l_state]
 
 func _pop_state_text(i: int) -> String:

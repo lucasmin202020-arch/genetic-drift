@@ -106,28 +106,36 @@ func _ready():
 func _preset_title() -> String:
 	return "Natural Disaster"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "A disaster kills by place, not by color — and still changes the color mix."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "Genetic drift is driven by [b]sampling error[/b]: in every generation, which individuals happen to survive and reproduce is partly a matter of chance, and those accidents change allele frequencies with no regard to which alleles are better. A natural disaster that kills a large share of a population at random is the classic textbook trigger. A fire, flood, or eruption does not distinguish between genotypes, so no genotype survives it better than any other — and yet the survivors' allele frequencies can end up very different from the original population's.\n\n"
+		"[b]A disaster kills by [i]location[/i], not by trait. Because relatives cluster together, it still removes colors unevenly.[/b]\n"
+		+ "Being in the wrong spot isn't inherited, so the change is chance — that's drift, not selection."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"Genetic drift is driven by [b]sampling error[/b]: in every generation, which individuals happen to survive and reproduce is partly a matter of chance, and those accidents change allele frequencies with no regard to which alleles are better. A natural disaster that kills a large share of a population at random is the classic textbook trigger. A fire, flood, or eruption does not distinguish between genotypes, so no genotype survives it better than any other — and yet the survivors' allele frequencies can end up very different from the original population's.\n\n"
 		+ "Textbooks usually treat a disaster as a whole-population bottleneck. This scenario looks at something subtler. Real disasters are [i]local[/i]: they hit a place, not a genotype. And individuals are almost never spread evenly through a habitat. Offspring tend to live near their parents, so relatives — and the alleles they share — cluster in space. A disaster that only cares about [b]where[/b] you are will therefore remove alleles unevenly, purely because of that clustering.\n\n"
 		+ "This is still drift, not natural selection. Selection requires that an allele changes an individual's own chance of surviving or reproducing. Being in the wrong place when the disaster hits is not a heritable trait, so the alleles that are lost are lost by chance. That is the definition of drift. When biologists say drift is \"random\", they mean random with respect to genotype — not that every individual in a habitat faces exactly the same risk.\n\n"
-		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\" and \"Bottlenecks and founder effects\"; OpenStax, Biology for AP Courses §19.2 Population Genetics; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics).[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\" and \"Bottlenecks and founder effects\"; OpenStax, Biology for AP Courses §19.2 Population Genetics; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics).[/i]"
+	)
 
-# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
-# pause popup opened by the help button that DriftPreset puts in the panel.
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "The pen holds 24 blobs, 8 of each color, moving freely. Because offspring are born next to their parents, colors end up clumped without anyone arranging it. The slider sets the disaster zone size: small, medium, or large. Pressing Arm turns the zone on; it follows your cursor, every blob inside it gets a ring, and the readout counts what is inside by color. Left-click to strike: every ringed blob dies. Right-click to cancel without firing. After a strike the survivors breed the pen back to 24, the button re-arms, and you can strike again. Each strike is logged and marked on the graph; the results card totals the kills by color across the whole run.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Before arming, look at the pen. Are the colors evenly spread or clumped?\n"
-		+ "2.  Press Arm and move the zone around without firing. Watch the count by color change as you move.\n"
-		+ "3.  Strike a spot where one color is concentrated. Watch the bars during recovery.\n"
-		+ "4.  When it re-arms, strike a spot with an even mix. Compare the two results in the log.\n"
-		+ "5.  Fire at least four strikes in one run, then read the results card. Try a run with only Large strikes, then one with only Small."
+		"[b]How it works[/b]\n"
+		+ "•  24 blobs, 8 per color. Offspring are born next to parents, so colors clump.\n"
+		+ "•  Press Arm → a zone follows your mouse. [b]Left-click to strike[/b], right-click to cancel.\n"
+		+ "•  Survivors breed back to 24, then you can strike again.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Arm and move the zone around — watch the color count change.\n"
+		+ "2.  Strike a clump of one color. Watch the bars.\n"
+		+ "3.  Strike an even mix. Compare the two in the log."
 	)
 
 func _preset_questions() -> Array:
@@ -321,7 +329,7 @@ func _event_summary() -> String:
 			"them" if lost.size() > 1 else "it",
 			"they" if lost.size() > 1 else "it"]
 
-	return "[b]%d strike%s, %d blobs killed: %d red, %d green, %d blue.[/b]\n\n%s%s\n\nThe zone had no idea what color anything was. It selected on [b]location[/b], and location correlates with color for one reason only: blobs are born next to their parents, so colors clump together by accident.\n\nThat's what makes this drift rather than selection. The blobs that died weren't slower, weaker, or worse at anything. They were in the wrong rectangle.\n\nAnd each time the population bred back to twenty-four, it bred back from [b]whoever survived[/b] — so the recovered mix was the survivors' mix, not the original one." % [
+	return "[b]%d strike%s, %d blobs killed: %d red, %d green, %d blue.[/b]\n\n%s%s\n\nThe zone selected on [b]location[/b] only. Location lines up with color because blobs are born next to their parents. The blobs that died weren't worse at anything — they were in the wrong rectangle. That's drift, not selection." % [
 		fire_count, "" if fire_count == 1 else "s", killed,
 		total_killed[0], total_killed[1], total_killed[2], fairness, loss_line]
 

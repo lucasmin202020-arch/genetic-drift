@@ -161,26 +161,38 @@ func _draw_pen_extras(ov, i: int, r: Rect2):
 func _preset_title() -> String:
 	return "Parallel Worlds"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "Nine identical starts, nine different endings — that's what random means."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "If genetic drift is driven by chance, then two populations that start identical should not be expected to end identical. Each one follows its own sequence of random births and deaths, and those sequences diverge. This is the defining feature that separates drift from natural selection: selection pushes every population in the same direction, because the same trait is favoured everywhere; drift pushes each population in its own direction, because nothing is favoured anywhere.\n\n"
+		"[b]Identical populations under identical rules do not end identical.[/b]\n"
+		+ "Each world follows its own run of random births and deaths. Selection would push them all the same way; "
+		+ "drift sends each one somewhere different."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"If genetic drift is driven by chance, then two populations that start identical should not be expected to end identical. Each one follows its own sequence of random births and deaths, and those sequences diverge. This is the defining feature that separates drift from natural selection: selection pushes every population in the same direction, because the same trait is favoured everywhere; drift pushes each population in its own direction, because nothing is favoured anywhere.\n\n"
 		+ "The classic demonstration is Peter Buri's 1956 experiment. He set up 107 separate laboratory populations of fruit flies, each founded by 16 flies carrying two eye-color alleles at exactly 50/50, and bred each population for 19 generations. The populations started identical and were kept under identical conditions. By the end, some had lost one allele entirely, some had lost the other, and the rest were scattered in between. The overall spread matched what drift theory predicted for populations that small. No population was special; the spread came entirely from sampling.\n\n"
 		+ "The same logic applies in nature. Split a species into isolated groups — on different islands, in separate valleys, on opposite sides of a river — and over generations the groups accumulate different allele frequencies purely by drift, with no environmental difference required. Motoo Kimura's neutral theory (1968) argues that a large share of the genetic differences between real populations and species arose this way, from drift acting on neutral variants rather than from selection.\n\n"
 		+ "Two things to keep straight. First, \"random\" does not mean \"unfair\": every color has the same chance in every world. Second, randomness does not mean the outcome is unpredictable at the level of the whole set: with three equally common colors, roughly a third of the worlds should end on each one, and the more worlds you run, the closer the totals get to that.\n\n"
-		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Buri, P. (1956), \"Gene frequency in small populations of mutant Drosophila\", Evolution 10(4): 367–402; Kimura, M. (1968), \"Evolutionary rate at the molecular level\", Nature 217: 624–626.[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Buri, P. (1956), \"Gene frequency in small populations of mutant Drosophila\", Evolution 10(4): 367–402; Kimura, M. (1968), \"Evolutionary rate at the molecular level\", Nature 217: 624–626.[/i]"
+	)
 
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "Nine walled-off pens run at once in a 3×3 grid. Each starts with 6 blobs — 2 red, 2 green, 2 blue — and can hold up to 9. Every world uses identical rules and no color is favoured in any of them. Each pen has a colored bar along its bottom edge showing its current mix. When a world drops to a single color it is FIXED: its border turns that color, a tag appears, the pen dims, and its blobs stop moving. A world whose blobs all die is tagged EMPTY. The side panel counts how many worlds each color has won this run, and keeps a running total across every run this session. The run ends when all nine worlds have settled or when time runs out.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Before pressing Begin, write down how many worlds you expect each color to win.\n"
-		+ "2.  Once the blobs mature, watch the nine bottom bars for 20 seconds. Notice they are already sliding in different directions.\n"
-		+ "3.  When the first world fixes, note its color, then watch whether the next world to fix agrees with it.\n"
-		+ "4.  At the end, compare the split to 3 / 3 / 3. Then run it twice more and look at the all-runs total — it should get closer to a third each as the total climbs."
+		"[b]How it works[/b]\n"
+		+ "•  Nine sealed pens, each 2 red, 2 green, 2 blue (cap 9).\n"
+		+ "•  When a pen hits one color it's FIXED: border turns that color, blobs freeze.\n"
+		+ "•  The panel tallies wins this run and across the session.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Guess how many worlds each color wins.\n"
+		+ "2.  Watch the nine bars slide in different directions.\n"
+		+ "3.  Run it twice more. Does the total head toward 3 / 3 / 3?"
 	)
 
 func _preset_questions() -> Array:
@@ -409,7 +421,7 @@ func _summary() -> String:
 		if max_w == settled:
 			spread = "they all happened to land on the same color this time — which is itself just luck"
 
-	return "[b]Nine identical worlds. %s.[/b]\n\nEvery pen started with the same six blobs, the same rules, and the same odds — and %s.\n\nThere was nothing different about world 1 and world 9 at the start. No color was stronger anywhere. The only thing separating these outcomes is [b]which blobs happened to bump into which[/b].\n\nThis is what people mean when they call drift [b]random[/b]: not that anything is unfair, but that the outcome genuinely cannot be predicted from the starting conditions.\n\nIt's also why isolated populations of one species slowly [b]diverge[/b]. Cut a species into nine separate groups and, given enough time, you get nine different-looking groups — with no selection involved at all." % [
+	return "[b]Nine identical worlds. %s.[/b]\n\nEvery pen started with the same six blobs, the same rules, and the same odds — and %s.\n\nThe only thing separating these outcomes is [b]which blobs happened to bump into which[/b]. That's why isolated populations of one species slowly [b]diverge[/b], with no selection involved at all." % [
 		", ".join(parts), spread]
 
 # ---------------------------------------------------------------------------

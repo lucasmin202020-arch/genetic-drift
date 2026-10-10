@@ -54,26 +54,38 @@ func _ready():
 func _preset_title() -> String:
 	return "The Long Shot"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "A rare color rarely wins — but it can. Its odds equal its starting share."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "Lesson 1 showed that a neutral allele — one that makes no difference to survival or reproduction — can still take over a population by chance. This lesson is about [i]how likely[/i] that is.\n\n"
+		"[b]A color's chance of taking over equals its starting share. Rare is unlikely, not impossible.[/b]\n"
+		+ "Blue starts at 67%, so blue wins about 2 runs in 3. Red and green each win about 1 in 6. "
+		+ "When a rare color wins, nothing was different about that run — it was just its turn."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"Lesson 1 showed that a neutral allele — one that makes no difference to survival or reproduction — can still take over a population by chance. This lesson is about [i]how likely[/i] that is.\n\n"
 		+ "Population geneticists have a precise answer. For a neutral allele, the probability that it will eventually reach [b]fixation[/b] (100% of the population) is equal to its [b]current frequency[/b]. An allele carried by half the population has a 50% chance of winning; one carried by a tenth has a 10% chance. The rest of the time it is lost. This was worked out formally by Motoo Kimura in 1962, and it holds no matter how large the population is — size only changes how [i]long[/i] the process takes, not the odds.\n\n"
 		+ "The consequence is easy to miss but important: [b]rare alleles almost always disappear[/b]. A brand-new mutation starts as a single copy in a population of thousands, so its chance of ever becoming common is tiny — even if it happens to be beneficial. Most new variants, useful or not, are gone within a few generations. Drift is a constant filter that removes rare variation, which is one of the main reasons small or shrinking populations lose genetic diversity over time.\n\n"
 		+ "Note what the rule does [i]not[/i] say. It does not say the common allele always wins. It says the common allele wins in proportion to how common it is. A one-in-six shot still comes in one time in six, and when it does, nothing about that allele was better — it was simply the unlikely branch of a random process.\n\n"
-		+ "[i]Sources: Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Genetic drift\"; Kimura, M. (1962), \"On the probability of fixation of mutant genes in a population\", Genetics 47(6): 713–719.[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Genetic drift\"; Kimura, M. (1962), \"On the probability of fixation of mutant genes in a population\", Genetics 47(6): 713–719.[/i]"
+	)
 
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "The pen starts with 12 blobs — 8 blue, 2 red, 2 green — and never holds more than 14. Color does nothing: no color lives longer or breeds faster, and the rules are identical to Lesson 1. Blue's starting share is 67%, red's and green's are 17% each; those numbers are the predicted win rates. The run ends when one color is the only one left. The results card keeps a running tally for the whole session — leaving to the menu and coming back does not reset it — and shows each color's predicted win rate next to its actual one. A run that hits the time limit or dies out completely does not count toward the tally.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Before pressing Begin, write down which color you expect to win this run.\n"
-		+ "2.  Watch the two rare colors. Note how quickly one of them usually drops to a single blob.\n"
-		+ "3.  When the run ends, look at the tally, then press Run Again. Do this at least six times.\n"
-		+ "4.  After six or more completed runs, compare the Actual column to the Predicted column. The rows turn green when they're close."
+		"[b]How it works[/b]\n"
+		+ "•  12 blobs: 8 blue, 2 red, 2 green. Color does nothing.\n"
+		+ "•  The run ends when one color is all that's left.\n"
+		+ "•  A session tally compares actual win rates to predicted ones.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Guess the winner before you press Begin.\n"
+		+ "2.  Watch how fast a rare color drops to a single blob.\n"
+		+ "3.  Run it six or more times, then compare Actual to Predicted."
 	)
 
 func _preset_questions() -> Array:

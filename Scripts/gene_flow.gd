@@ -339,26 +339,38 @@ func _divergence() -> float:
 func _preset_title() -> String:
 	return "Gene Flow"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "Isolation lets populations drift apart. A trickle of migration pulls them back."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "[b]Gene flow[/b] is the movement of alleles between populations. It happens whenever an individual — or a seed, or pollen, or a spore — travels from one population to another and breeds there, carrying its alleles with it. It is one of the four basic mechanisms that change allele frequencies, alongside mutation, natural selection, and genetic drift.\n\n"
+		"[b]Sealed populations drift apart. Let a few blobs cross and they get pulled back together.[/b]\n"
+		+ "A migrant carries its color into the other pen and breeds there, mixing away any difference drift built up. "
+		+ "It takes surprisingly little — about one migrant per generation."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"[b]Gene flow[/b] is the movement of alleles between populations. It happens whenever an individual — or a seed, or pollen, or a spore — travels from one population to another and breeds there, carrying its alleles with it. It is one of the four basic mechanisms that change allele frequencies, alongside mutation, natural selection, and genetic drift.\n\n"
 		+ "Gene flow and drift push in opposite directions. Drift makes isolated populations [i]diverge[/i]: each one wanders on its own random path, and over time their allele frequencies drift apart even though nothing about their environments differs. Gene flow makes connected populations [i]converge[/i]: every migrant carries a sample of one population's alleles into the other, so any difference that has built up gets mixed back down. The two populations effectively stop being separate experiments and start behaving like one larger population.\n\n"
 		+ "What surprises most people is how little migration it takes. A classic result from population genetics, first derived by Sewall Wright in 1931, is that roughly [b]one successful migrant per generation[/b] is enough to prevent two populations from diverging much by drift, regardless of how large they are. Isolation has to be nearly complete before drift can pull populations genuinely apart. This is why geographic barriers — oceans, mountain ranges, deserts, and increasingly roads and cities — matter so much for how species split: they are what cuts the flow.\n\n"
 		+ "The same principle is used deliberately in conservation. In 1995, eight female pumas from Texas were released into the Florida panther population, which had shrunk to a few dozen inbred animals with severe genetic defects. The introduced animals bred, restored lost alleles, and the population's health and numbers recovered — a case of gene flow being engineered on purpose to reverse the effects of drift.\n\n"
-		+ "[i]Sources: Khan Academy, \"Genetic drift\" and \"Mechanisms of evolution\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Gene flow\"; Wright, S. (1931), \"Evolution in Mendelian populations\", Genetics 16(2): 97–159; Johnson, W. E. et al. (2010), \"Genetic restoration of the Florida panther\", Science 329(5999): 1641–1645.[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: Khan Academy, \"Genetic drift\" and \"Mechanisms of evolution\" (AP Biology, Population genetics); UC Berkeley Understanding Evolution, \"Gene flow\"; Wright, S. (1931), \"Evolution in Mendelian populations\", Genetics 16(2): 97–159; Johnson, W. E. et al. (2010), \"Genetic restoration of the Florida panther\", Science 329(5999): 1641–1645.[/i]"
+	)
 
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "Two equal pens, West and East, each start with 15 blobs — 5 of each color — and each can hold up to 20. Color does nothing. Between the pens is a gap with a gate in the middle. For the first 15 seconds the gate is sealed and the pens are fully isolated. After that it cycles on a timer: open for 15 seconds, then shut for 16, and so on until the run ends. A blob belongs to whichever pen it is physically standing in, so a blob that wanders through the open gate joins the other population and breeds there; every such crossing is counted. The side panel shows each pen's mix, the gate's state, and a single number — how different the two pens are, from 0% (identical mixes) to 100% (no colors in common). The graph below it plots that number over time, shading the background green while the gate is open and red while it is shut. The run ends when time runs out.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  During the first sealed stretch, watch the difference line. Write down what it does.\n"
-		+ "2.  When the gate label turns to OPEN, watch the gate itself for blobs crossing, and watch what the difference line does inside the green band.\n"
-		+ "3.  During the next shut stretch, watch whether the line climbs again.\n"
-		+ "4.  At the end, compare \"Most different\" to \"Different at the end\" on the results card, and note how few crossings it took."
+		"[b]How it works[/b]\n"
+		+ "•  Two pens, West and East, 15 blobs each. A gate sits between them.\n"
+		+ "•  Sealed for 15s, then the gate cycles open / shut. Crossings are counted.\n"
+		+ "•  The graph shows how [i]different[/i] the pens are (green = gate open).\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  While sealed, watch the difference line climb.\n"
+		+ "2.  When the gate opens, watch for crossings and what the line does.\n"
+		+ "3.  At the end, compare the peak difference to the final one."
 	)
 
 func _preset_questions() -> Array:
@@ -601,7 +613,7 @@ func _summary() -> String:
 		verdict = "The pens ended [b]%.0f%%[/b] different, having peaked at %.0f%% while cut off. %d crossing%s happened, but drift kept pulling the pens apart faster than migration could pull them together — which happens when the flow is small and the populations are tiny." % [
 			final_d, peak_divergence, migrants, "" if migrants == 1 else "s"]
 
-	return "[b]The pens peaked at %.0f%% different, and finished at %.0f%%.[/b]\n\n%s\n\nWhile the gate was shut, each pen drifted on its own and they became more and more different — for no reason other than chance.\n\nThe moment blobs could cross, the two pens stopped being separate experiments. A migrant carries its color into the other population and breeds there, so any difference that drift builds up gets mixed away again.\n\nThat's why [b]gene flow is the enemy of divergence[/b]. Populations only become genuinely different when something keeps them apart — a mountain range, an ocean, a road. Isolation isn't a background detail in evolution; it's the requirement." % [
+	return "[b]The pens peaked at %.0f%% different, and finished at %.0f%%.[/b]\n\n%s\n\nGate shut: each pen drifted on its own and they grew apart by chance. Gate open: a migrant carries its color across and breeds there, mixing the difference away. [b]Gene flow is the enemy of divergence[/b] — populations only become different when something keeps them apart." % [
 		peak_divergence, final_d, verdict]
 
 # ---------------------------------------------------------------------------

@@ -119,27 +119,39 @@ func _draw_pen_extras(ov, i: int, r: Rect2):
 func _preset_title() -> String:
 	return "Drift vs Selection"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "Drift wanders with no direction. Selection climbs the same way every time."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "Genetic drift and natural selection both change allele frequencies, and both involve chance, but they are different mechanisms and they leave different signatures.\n\n"
+		"[b]Drift and selection both change the mix. Only selection has a direction.[/b]\n"
+		+ "Run drift again and a different color may win. Run selection again and the advantaged color climbs again, "
+		+ "because the advantage is real and repeatable."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"Genetic drift and natural selection both change allele frequencies, and both involve chance, but they are different mechanisms and they leave different signatures.\n\n"
 		+ "[b]Natural selection[/b] happens when a heritable trait changes how many offspring an individual leaves. Individuals with the trait survive longer, mate more, or produce more young, so the allele behind it becomes more common. Selection has a [i]direction[/i]: run the same population again and the same allele rises again, because the advantage is real and repeatable. This is the mechanism Darwin described, and it is the one that produces adaptation — traits that fit an organism to its environment.\n\n"
 		+ "[b]Genetic drift[/b] happens when allele frequencies change by chance alone, with no trait affecting reproduction. Drift has no direction: run the same population again and a different allele may rise, because nothing was favouring the first one. Drift does not produce adaptation. It can just as easily remove a useful allele as spread it.\n\n"
 		+ "In real populations both act at once, and which one dominates depends on population size and on how strong the advantage is. In small populations drift is powerful enough to overwhelm weak selection, so a mildly beneficial allele can still be lost by bad luck; in large populations even a small advantage wins out reliably, because chance averages away. The rough rule is that selection controls an allele's fate only when its advantage is larger than about one over twice the population size.\n\n"
 		+ "The two are told apart the same way in the field as in this lab: by [b]repeatability[/b] and [b]direction[/b]. If isolated populations keep converging on the same trait in the same environment, selection is at work. If they wander to different endpoints with no pattern, drift is. The peppered moth's shift to dark coloration during industrial pollution, repeated across many separate populations, is a selection signature; the scatter of allele frequencies across islands with identical climates is a drift signature.\n\n"
-		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Natural selection\" and \"Genetic drift\"; Khan Academy, \"Natural selection\" and \"Genetic drift\" (AP Biology); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Kimura, M. (1983), The Neutral Theory of Molecular Evolution, Cambridge University Press.[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Natural selection\" and \"Genetic drift\"; Khan Academy, \"Natural selection\" and \"Genetic drift\" (AP Biology); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); Kimura, M. (1983), The Neutral Theory of Molecular Evolution, Cambridge University Press.[/i]"
+	)
 
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "Two pens of the same size run side by side, each starting with 18 blobs — 6 of each color — and each holding up to 24. In the left pen, color does nothing; these are exactly the rules from every other lesson. In the right pen, [b]red blobs live %d%% longer[/b] than green or blue, which gives them more time to reproduce. Nothing else differs: same size, same crowding, same random breeding. Advantaged blobs in the right pen are ringed in gold so you can see who is favoured. Each pen has its own tracker and graph in the side panel. The run ends when both pens have settled on one color (or died out), or when time runs out. The results card records which color won in each pen and keeps a tally across every run this session.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Before pressing Begin, predict the winner in each pen separately.\n"
-		+ "2.  Once the blobs mature, compare the two graphs. Look at the shape of the lines — jagged with no trend on the left, a steady climb on the right.\n"
-		+ "3.  Note which pen settles first and which color won in each.\n"
-		+ "4.  Run it at least three times. On the results card, compare the two tallies: the drift pen's winner should keep changing; the selection pen's should not."
+		"[b]How it works[/b]\n"
+		+ "•  Two equal pens, 18 blobs each. Left: color does nothing.\n"
+		+ "•  Right: [b]red lives %d%% longer[/b] (ringed in gold). Everything else identical.\n"
+		+ "•  A session tally records each pen's winner.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Predict the winner in each pen separately.\n"
+		+ "2.  Compare the two graphs: jagged on the left, a steady climb on the right.\n"
+		+ "3.  Run it three times. Drift's winner changes; selection's doesn't."
 	) % int(round((ADVANTAGE - 1.0) * 100.0))
 
 # ---------------------------------------------------------------------------
@@ -341,7 +353,7 @@ func _summary() -> String:
 	var s_red: float = _pct(SELECTION_PEN, ADVANTAGED_COLOR)
 	var d_red: float = _pct(0, ADVANTAGED_COLOR)
 
-	return "[b]Left pen (drift): %s came out on top. Right pen (selection): red reached %.0f%%.[/b]\n\nBoth pens had the same size, the same crowding, the same randomness. The only difference was that red lived longer on the right.\n\n[b]Drift[/b] moved the left pen around — red ended at %.0f%% there, up or down purely by accident. Run it again and a different color will lead. There is no direction to it.\n\n[b]Selection[/b] moved the right pen too, but toward a specific answer. Run it again and red will climb again, because a longer life genuinely produces more offspring. Chance still decides the details; it no longer decides the destination.\n\nThat's the distinction this whole lab rests on: [b]drift is change without direction[/b]. The moment a trait changes how many offspring an individual leaves, you've stopped modelling drift and started modelling evolution by natural selection." % [
+	return "[b]Left pen (drift): %s came out on top. Right pen (selection): red reached %.0f%%.[/b]\n\nSame size, same crowding, same randomness. The only difference: red lived longer on the right.\n\n[b]Drift[/b] moved the left pen — red ended at %.0f%% there, purely by accident. Run it again and a different color will lead.\n\n[b]Selection[/b] moved the right pen toward a specific answer. Run it again and red climbs again. Chance decides the details; it no longer decides the destination." % [
 		preset_color_names[d_lead], s_red, d_red]
 
 # ---------------------------------------------------------------------------

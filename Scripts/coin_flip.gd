@@ -19,12 +19,17 @@ class_name DriftPreset
 #     p_speed_index    0..4 -> 0.25x .. 1.25x
 #
 #     _preset_title()             card + intro heading
-#     _preset_intro_bbcode()      intro card body text — THE SCIENCE section,
-#                                 which should end by appending _howto_bbcode()
-#     _howto_bbcode()             HOW THIS SIMULATION WORKS + WHAT TO DO. Shown
-#                                 at the end of the intro AND on demand from the
-#                                 help button in the side panel, which pauses
-#                                 the whole sim while it's open.
+#     _takeaway_line()            ONE sentence: what this scenario shows. Sits
+#                                 in the goal strip above the lab the whole run,
+#                                 and at the top of the results card.
+#     _science_bbcode()           the SHORT science (≤ 50 words): one bold
+#                                 sentence + two lines of why. Intro card.
+#     _science_long_bbcode()      the full write-up + sources. Hidden behind
+#                                 "Read more" on the intro card; shown in full
+#                                 in the About popup's Why tab. May be "".
+#     _howto_bbcode()             HOW IT WORKS (3 bullets) + WHAT TO DO (3
+#                                 steps). Intro card + About popup's How tab.
+#     _preset_intro_bbcode()      composes the above; rarely overridden now.
 #     _preset_questions()         the three PREDICT FIRST questions
 #     _build_extra_end_content()  extra widgets on the results card
 #     _refresh_extra_end_content()refresh them when a run finishes
@@ -32,12 +37,18 @@ class_name DriftPreset
 #     _menu_scene_path()          where the back/exit buttons go
 #     _menu_button_text()         what the exit button is called
 #
-#  HELP BUTTON
-#  -----------
-#  A standalone amber "?  What do I do?" button sits in the side panel between
-#  the speed slider and whatever controls the scenario adds. It's built here
-#  once, so every preset and every event has it without any per-file work.
-#  It opens HowToPopup (res://Scripts/howto_popup.gd) with _howto_bbcode().
+#  ALWAYS-AVAILABLE CONTEXT  (beta feedback: "I forgot what the scenario was")
+#  -------------------------
+#  Three things stay on screen for the whole run, built here once so every
+#  preset and every event gets them with no per-file work:
+#    GOAL STRIP   a one-line amber strip across the top of the lab with
+#                 _takeaway_line(). PopLabel and the top wall are nudged down
+#                 to make room; multi-pen scenes measure from PopLabel so
+#                 they shrink to fit automatically.
+#    ?  About     header-row button. Opens HowToPopup with two tabs —
+#                 Why (science) and How (mechanics + steps). Pauses the sim.
+#    Info         header-row button. Opens the full Info menu as an overlay
+#                 on top of the run (InfoMenu.tscn in overlay_mode). Pauses.
 #
 #  SETUP:
 #    1. Open Game.tscn -> Scene -> "Save Scene As..." -> CoinFlip.tscn
@@ -79,10 +90,15 @@ const CARD_VERTICAL_MARGIN := 90.0
 # --- PREDICT-FIRST PANEL COLORS ---
 const PREDICT_ACCENT := Color(0.95, 0.78, 0.38)
 
-# --- HELP BUTTON ---
+# --- HELP / INFO BUTTONS + GOAL STRIP ---
 # Same amber as the PREDICT FIRST block, so "instructions" always look the
 # same wherever they appear, and never the blue of Begin or the red of Fire.
 const HELP_ACCENT := PREDICT_ACCENT
+const INFO_SCENE := "res://Scenes/InfoMenu.tscn"
+const GOAL_STRIP_H := 30.0        # height of the strip above the lab
+const GOAL_STRIP_GAP := 6.0       # gap between the strip and PopLabel
+const GOAL_STRIP_TOP := 8.0
+const LAB_SIDE_MARGIN := 16.0     # matches LAB_EDGE / EDGE_MARGIN elsewhere
 
 # --- PRESET STATE ---
 var ended: bool = false
@@ -104,6 +120,13 @@ var end_card: Control
 var end_text: RichTextLabel
 var compare_box: VBoxContainer
 var help_button: Button
+var info_button: Button
+var hud_layer: CanvasLayer
+var goal_strip: PanelContainer
+var goal_label: Label
+var intro_more_btn: Button
+var intro_long_body: RichTextLabel
+var info_layer: CanvasLayer = null
 var card_scrolls: Array = []     # [{ "scroll": ScrollContainer, "vb": VBoxContainer }]
 
 var preset_color_names: Array[String] = ["Red", "Green", "Blue"]
@@ -216,35 +239,60 @@ class FreqGraph extends Control:
 
 # ---------------------------------------------------------------------------
 #  OVERRIDABLE SCENARIO TEXT
+#  Budget (beta feedback: "huge blocks of text"): the intro card should be
+#  ≤ 120 words before the questions. Science ≤ 50, how-it-works 3 bullets of
+#  ≤ 12 words, what-to-do 3 steps of ≤ 10 words. The long version lives in
+#  _science_long_bbcode() and is one click away, never in the way.
 # ---------------------------------------------------------------------------
 func _preset_title() -> String:
 	return "Randomness: The Basis of Genetic Drift"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "A color can take over with no advantage at all — pure chance is enough."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "Every individual in a population carries [b]alleles[/b] — alternative versions of a gene. The fraction of the population carrying a particular allele is its [b]allele frequency[/b], and evolution, at its most basic, is a change in allele frequencies over time.\n\n"
+		"[b]A color can take over the population without being better in any way.[/b]\n"
+		+ "Each generation is a random sample of the last, and random samples drift. "
+		+ "Small nudges pile up until one color hits 100% and the rest are gone for good."
+	)
+
+func _science_long_bbcode() -> String:
+	return (
+		"Every individual in a population carries [b]alleles[/b] — alternative versions of a gene. The fraction of the population carrying a particular allele is its [b]allele frequency[/b], and evolution, at its most basic, is a change in allele frequencies over time.\n\n"
 		+ "Natural selection is one way frequencies change: an allele that helps its carrier survive or reproduce becomes more common. But it is not the only way. In every generation, some individuals happen to leave more offspring than others for reasons that have nothing to do with their genes — one is eaten before breeding, another gets lucky and has an extra litter. The next generation is therefore a [i]random sample[/i] of the alleles in the current one, and a random sample never perfectly matches what it was drawn from. This sampling error, accumulating generation after generation, is [b]genetic drift[/b].\n\n"
 		+ "Drift happens in every population that is not infinitely large, but its strength depends on population size. If one individual in a population of 10 dies without offspring, a tenth of the gene pool is gone in a single step; in a population of 100, the same death removes only one percent. Small populations therefore lurch; large ones are buffered.\n\n"
 		+ "Left running long enough, drift has only two endings for any allele. Either it reaches 100% — called [b]fixation[/b] — or it drops to 0% and is lost. Once an allele is lost it cannot return unless mutation recreates it or migration brings it back. Drift does not care whether an allele is useful: it can fix a harmful one or throw away a beneficial one, because nothing about the allele is steering the outcome.\n\n"
 		+ "One important consequence: an allele does not have to be better to take over. For a neutral allele — one with no effect on survival or reproduction — its chance of eventually reaching fixation is simply its current frequency. Three equally common colors each have a one-in-three chance of winning, and one of them always does.\n\n"
-		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); OpenStax, Biology for AP Courses §19.2 Population Genetics.[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: UC Berkeley Understanding Evolution, \"Genetic drift\"; Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2); OpenStax, Biology for AP Courses §19.2 Population Genetics.[/i]"
+	)
 
-# Shown at the end of the intro card and, on demand, in the pause popup opened
-# by the help button. Every subclass should override this with its own
-# mechanics and procedure; this default is Lesson 1's.
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "The pen starts with 12 blobs, 4 of each color, and never holds more than 16. Every blob has the same shape and the same eyes; color is the only difference and it does nothing — no color lives longer or breeds faster. Blobs are born small and cannot reproduce until they mature; the graph shades that growing-up period. After that, whenever two adult blobs meet there is a chance they produce a child, and the child inherits one parent's color at random. Blobs also die of old age at random times. The graph traces each color's share of the population over time. The run ends when one color is the only one left, or when time runs out.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Before pressing Begin, pick the color you think will win and write it down.\n"
-		+ "2.  Watch the graph. Note the first time any color drops below 20%.\n"
-		+ "3.  When a color disappears, watch whether it ever comes back. (It can't — ask yourself why.)\n"
-		+ "4.  Run it at least three times. Keep a tally of which color won each time."
+		"[b]How it works[/b]\n"
+		+ "•  12 blobs, 4 per color. Color does nothing — no color lives longer or breeds faster.\n"
+		+ "•  Two adults bump → one baby, which takes a random parent's color.\n"
+		+ "•  The run ends when one color is all that's left.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Pick the color you think will win. Write it down.\n"
+		+ "2.  Watch the graph. Note when a color first drops under 20%.\n"
+		+ "3.  Run it three times. Tally the winners."
 	)
+
+# The intro card body. Subclasses normally override the pieces, not this.
+func _preset_intro_bbcode() -> String:
+	return _science_bbcode() + "\n\n" + _howto_bbcode()
+
+# Everything the About popup's Why tab shows: the short version, then the
+# full write-up if the scenario has one.
+func _about_why_bbcode() -> String:
+	var txt: String = _science_bbcode()
+	var long_txt: String = _science_long_bbcode()
+	if long_txt.strip_edges() != "":
+		txt += "\n\n[b]The full story[/b]\n\n" + long_txt
+	return txt
 
 # THREE QUESTIONS THE USER SHOULD ANSWER BEFORE PRESSING BEGIN.
 # Every preset overrides this. Prediction before observation is the whole
@@ -287,11 +335,14 @@ func _ready():
 	_hide_playground_only_controls()
 	_declutter_tracker()
 	_enlarge_chart()
+	_shift_lab_for_goal_strip()
 	_build_help_button()
+	_build_goal_strip()
 	_build_graph()
 	_build_caption_box()
 	_build_preset_overlays()
 	get_viewport().size_changed.connect(_fit_cards)
+	get_viewport().size_changed.connect(_place_goal_strip)
 	_show_intro()
 
 func _mix_total() -> int:
@@ -316,8 +367,7 @@ func _hide_playground_only_controls():
 func _set_gated_visible(vis: bool):
 	super._set_gated_visible(vis)
 	_hide_playground_only_controls()
-	if help_button:
-		help_button.visible = vis
+	_set_hud_visible(vis)
 	if caption_box:
 		caption_box.visible = vis
 	if graph:
@@ -325,6 +375,17 @@ func _set_gated_visible(vis: bool):
 	var gl = get_node_or_null("UIPanel/VBox/GraphLabel")
 	if gl:
 		gl.visible = vis
+
+# The always-available context: About, Info, and the goal strip. Subclasses
+# that override _set_gated_visible without calling super (MultiPen,
+# SmallVsLarge) call this directly.
+func _set_hud_visible(vis: bool):
+	if help_button:
+		help_button.visible = vis
+	if info_button:
+		info_button.visible = vis
+	if goal_strip:
+		goal_strip.visible = vis
 
 func _declutter_tracker():
 	var tbase := "UIPanel/VBox/TrackerScroll/TrackerVBox/TrackerContainer/"
@@ -384,51 +445,28 @@ func _on_back_to_menu():
 	get_tree().change_scene_to_file(_menu_scene_path())
 
 # ---------------------------------------------------------------------------
-#  HELP BUTTON — shares the header row with "← Menu". The side panel's VBox
-#  has no spare height (the caption box already sits at the bottom edge), so
-#  the button borrows width from the back button instead of taking a row of
-#  its own. game.gd puts the back button at index 0; it gets reparented into
-#  an HBox here, with the help button on its right.
+#  HEADER ROW — "← Menu" | "?  About" | "Info". The side panel's VBox has no
+#  spare height (the caption box already sits at the bottom edge), so the two
+#  new buttons borrow width from the back button instead of taking a row of
+#  their own. game.gd puts the back button at index 0; it gets reparented into
+#  an HBox here, with About and Info on its right.
 # ---------------------------------------------------------------------------
 func _build_help_button():
 	var vbox = get_node_or_null("UIPanel/VBox")
 	if not vbox:
 		return
 
-	help_button = Button.new()
+	help_button = _make_amber_button("?  About", 92)
 	help_button.name = "HelpButton"
-	help_button.text = "?  Help"
-	help_button.tooltip_text = "Pause the sim and re-read how this scenario works and what to do."
-	help_button.custom_minimum_size = Vector2(112, 0)
-	help_button.add_theme_font_size_override("font_size", 16)
-
-	# Outlined amber pill: clearly not a sim control, clearly "instructions".
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.12)
-	normal.border_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.90)
-	normal.set_border_width_all(2)
-	normal.set_corner_radius_all(8)
-	normal.content_margin_left = 12
-	normal.content_margin_right = 12
-	normal.content_margin_top = 4
-	normal.content_margin_bottom = 4
-	var hover: StyleBoxFlat = normal.duplicate()
-	hover.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.25)
-	var pressed: StyleBoxFlat = normal.duplicate()
-	pressed.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.35)
-
-	help_button.add_theme_stylebox_override("normal", normal)
-	help_button.add_theme_stylebox_override("hover", hover)
-	help_button.add_theme_stylebox_override("pressed", pressed)
-	help_button.add_theme_stylebox_override("focus", normal)
-	help_button.add_theme_color_override("font_color", HELP_ACCENT)
-	help_button.add_theme_color_override("font_hover_color", HELP_ACCENT.lightened(0.15))
-	help_button.add_theme_color_override("font_pressed_color", HELP_ACCENT)
-	help_button.add_theme_color_override("font_focus_color", HELP_ACCENT)
-	help_button.visible = false
+	help_button.tooltip_text = "Pause and re-read what this scenario shows (Why) and how to run it (How)."
 	help_button.pressed.connect(_on_help_pressed)
 
-	# Find the back button game.gd made, and put it and the help button in
+	info_button = _make_amber_button("Info", 62)
+	info_button.name = "InfoButton"
+	info_button.tooltip_text = "Pause and open the full Info menu — drift theory, how the lab works, every scenario."
+	info_button.pressed.connect(_on_info_pressed)
+
+	# Find the back button game.gd made, and put it and the new buttons in
 	# one row at the same index, so the rest of the panel doesn't shift.
 	var back: Button = null
 	for ch in vbox.get_children():
@@ -438,7 +476,7 @@ func _build_help_button():
 
 	var row := HBoxContainer.new()
 	row.name = "HeaderRow"
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 
 	if back:
 		var idx: int = back.get_index()
@@ -446,15 +484,159 @@ func _build_help_button():
 		vbox.add_child(row)
 		vbox.move_child(row, idx)
 		back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		back.add_theme_font_size_override("font_size", 15)
 		row.add_child(back)
 	else:
 		vbox.add_child(row)
 		vbox.move_child(row, 0)
 
 	row.add_child(help_button)
+	row.add_child(info_button)
+
+# Outlined amber pill: clearly not a sim control, clearly "instructions".
+func _make_amber_button(text: String, min_w: float) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(min_w, 0)
+	b.add_theme_font_size_override("font_size", 15)
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.12)
+	normal.border_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.90)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(8)
+	normal.content_margin_left = 8
+	normal.content_margin_right = 8
+	normal.content_margin_top = 4
+	normal.content_margin_bottom = 4
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.25)
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.35)
+
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("focus", normal)
+	b.add_theme_color_override("font_color", HELP_ACCENT)
+	b.add_theme_color_override("font_hover_color", HELP_ACCENT.lightened(0.15))
+	b.add_theme_color_override("font_pressed_color", HELP_ACCENT)
+	b.add_theme_color_override("font_focus_color", HELP_ACCENT)
+	b.visible = false
+	return b
 
 func _on_help_pressed():
-	HowToPopup.open(self, _preset_title(), _howto_bbcode())
+	HowToPopup.open_tabs(self, _preset_title(), [
+		{"label": "Why", "bbcode": _about_why_bbcode()},
+		{"label": "How", "bbcode": _howto_bbcode()},
+	])
+
+# The full Info menu, on top of the paused run. InfoMenu.tscn is instanced
+# with overlay_mode = true, so its exit buttons emit `closed` instead of
+# changing scene. Same pause mechanism as HowToPopup.
+func _on_info_pressed():
+	if info_layer != null:
+		return
+	if get_tree().get_first_node_in_group("howto_popup") != null:
+		return
+	if not ResourceLoader.exists(INFO_SCENE):
+		push_error("DriftPreset: no Info scene at %s" % INFO_SCENE)
+		return
+	var packed: PackedScene = load(INFO_SCENE)
+	var menu: Node = packed.instantiate()
+	if not ("overlay_mode" in menu):
+		push_error("DriftPreset: info_menu.gd has no overlay_mode — update it.")
+		menu.queue_free()
+		return
+	menu.set("overlay_mode", true)
+	menu.connect("closed", _on_info_closed)
+
+	info_layer = CanvasLayer.new()
+	info_layer.layer = 100
+	info_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(info_layer)
+	info_layer.add_child(menu)
+	info_layer.set_meta("was_paused", get_tree().paused)
+	get_tree().paused = true
+
+func _on_info_closed():
+	if info_layer == null:
+		return
+	var was_paused: bool = bool(info_layer.get_meta("was_paused", false))
+	get_tree().paused = was_paused
+	info_layer.queue_free()
+	info_layer = null
+
+# ---------------------------------------------------------------------------
+#  GOAL STRIP — one amber line across the top of the lab, all run long.
+#  PopLabel and the scene's top wall move down to make room. Every multi-pen
+#  layout measures its lab from PopLabel, so they shrink to fit on their own.
+# ---------------------------------------------------------------------------
+func _shift_lab_for_goal_strip():
+	var dy: float = GOAL_STRIP_H + GOAL_STRIP_GAP
+	var pop = get_node_or_null("PopLabel")
+	if pop and pop is Control:
+		pop.position.y += dy
+	var top_wall = get_node_or_null("Walls/top")
+	if top_wall and top_wall is Node2D:
+		top_wall.position.y += dy
+
+func _build_goal_strip():
+	hud_layer = CanvasLayer.new()
+	hud_layer.layer = 5
+	add_child(hud_layer)
+
+	goal_strip = PanelContainer.new()
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(0.11, 0.11, 0.14, 0.96)
+	s.border_color = Color(HELP_ACCENT.r, HELP_ACCENT.g, HELP_ACCENT.b, 0.75)
+	s.set_border_width_all(1)
+	s.border_width_left = 4
+	s.set_corner_radius_all(8)
+	s.content_margin_left = 12
+	s.content_margin_right = 12
+	s.content_margin_top = 4
+	s.content_margin_bottom = 4
+	goal_strip.add_theme_stylebox_override("panel", s)
+	goal_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	goal_strip.visible = false
+	hud_layer.add_child(goal_strip)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	goal_strip.add_child(row)
+
+	var tag := Label.new()
+	tag.text = "THIS SHOWS"
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_color", HELP_ACCENT)
+	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(tag)
+
+	goal_label = Label.new()
+	goal_label.text = _takeaway_line()
+	goal_label.add_theme_font_size_override("font_size", 14)
+	goal_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.95))
+	goal_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	goal_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	goal_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	goal_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(goal_label)
+
+	_place_goal_strip.call_deferred()
+
+func _place_goal_strip():
+	if goal_strip == null:
+		return
+	var vp := get_viewport_rect().size
+	var right: float = vp.x
+	var panel = get_node_or_null("UIPanel")
+	if panel and panel is Control:
+		right = panel.global_position.x
+	goal_strip.position = Vector2(LAB_SIDE_MARGIN, GOAL_STRIP_TOP)
+	goal_strip.size = Vector2(max(200.0, right - LAB_SIDE_MARGIN * 2.0), GOAL_STRIP_H)
 
 # ---------------------------------------------------------------------------
 #  SIDE-PANEL ADDITIONS
@@ -742,6 +924,13 @@ func _on_begin_pressed():
 	intro_card.visible = false
 	start_simulation()
 
+func _on_read_more_pressed():
+	if intro_long_body == null:
+		return
+	intro_long_body.visible = not intro_long_body.visible
+	intro_more_btn.text = "Read less  ▾" if intro_long_body.visible else "Read more  ▸"
+	_fit_cards.call_deferred()
+
 func _on_run_again_pressed():
 	end_card.visible = false
 	reset_simulation()
@@ -789,6 +978,32 @@ func _build_intro_card():
 	body.text = _preset_intro_bbcode()
 	vb.add_child(body)
 
+	# "Read more" — the full write-up and its sources, collapsed by default.
+	# Beta testers wanted less text on the card, not less text in the app.
+	if _science_long_bbcode().strip_edges() != "":
+		intro_more_btn = Button.new()
+		intro_more_btn.text = "Read more  ▸"
+		intro_more_btn.flat = true
+		intro_more_btn.add_theme_font_size_override("font_size", 14)
+		intro_more_btn.add_theme_color_override("font_color", HELP_ACCENT)
+		intro_more_btn.add_theme_color_override("font_hover_color", HELP_ACCENT.lightened(0.2))
+		intro_more_btn.add_theme_color_override("font_pressed_color", HELP_ACCENT)
+		intro_more_btn.add_theme_color_override("font_focus_color", HELP_ACCENT)
+		intro_more_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		intro_more_btn.pressed.connect(_on_read_more_pressed)
+		vb.add_child(intro_more_btn)
+
+		intro_long_body = RichTextLabel.new()
+		intro_long_body.bbcode_enabled = true
+		intro_long_body.fit_content = true
+		intro_long_body.scroll_active = false
+		intro_long_body.custom_minimum_size = Vector2(560, 0)
+		intro_long_body.add_theme_font_size_override("normal_font_size", 15)
+		intro_long_body.add_theme_color_override("default_color", Color(0.78, 0.78, 0.84))
+		intro_long_body.text = _science_long_bbcode()
+		intro_long_body.visible = false
+		vb.add_child(intro_long_body)
+
 	# The three questions sit between the explanation and the Begin button,
 	# so there is no way to start the run without scrolling past them.
 	vb.add_child(_build_question_panel())
@@ -798,6 +1013,40 @@ func _build_intro_card():
 	wrap.add_child(begin)
 	vb.add_child(wrap)
 	begin.pressed.connect(_on_begin_pressed)
+
+# The results card's headline: "THIS SHOWED" + _takeaway_line().
+func _build_takeaway_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(PREDICT_ACCENT.r, PREDICT_ACCENT.g, PREDICT_ACCENT.b, 0.10)
+	s.border_color = Color(PREDICT_ACCENT.r, PREDICT_ACCENT.g, PREDICT_ACCENT.b, 0.75)
+	s.set_border_width_all(1)
+	s.border_width_left = 4
+	s.set_corner_radius_all(8)
+	s.content_margin_left = 14
+	s.content_margin_right = 14
+	s.content_margin_top = 8
+	s.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", s)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	panel.add_child(vb)
+
+	var tag := Label.new()
+	tag.text = "THIS SHOWED"
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_color", PREDICT_ACCENT)
+	vb.add_child(tag)
+
+	var line := Label.new()
+	line.text = _takeaway_line()
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.custom_minimum_size = Vector2(500, 0)
+	line.add_theme_font_size_override("font_size", 17)
+	line.add_theme_color_override("font_color", Color(0.95, 0.94, 0.90))
+	vb.add_child(line)
+	return panel
 
 # A bordered, amber-tinted block. Deliberately styled unlike anything else on
 # the card so it reads as an instruction rather than more explanation.
@@ -859,6 +1108,9 @@ func _build_end_card():
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 26)
 	vb.add_child(title)
+
+	# One-line takeaway first (beta feedback: "a one-line 'this showed X'").
+	vb.add_child(_build_takeaway_panel())
 
 	end_text = RichTextLabel.new()
 	end_text.bbcode_enabled = true
@@ -934,6 +1186,8 @@ func _card_body(overlay: Control, min_size: Vector2) -> VBoxContainer:
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pad.add_child(scroll)
+	# A visible scrollbar (beta: "almost missed Begin, the scrollbar is thin").
+	HowToPopup._style_scrollbar(scroll)
 
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 14)

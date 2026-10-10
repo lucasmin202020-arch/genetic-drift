@@ -485,7 +485,10 @@ func _set_speed_label(idx: int):
 	idx = clampi(idx, 0, 4)
 	var speed_label = get_node_or_null("UIPanel/VBox/SpeedLabel")
 	if speed_label:
-		speed_label.text = "Speed: " + speed_names[idx]
+		# Name + multiplier + position on the 5-step scale, so it's obvious
+		# where you are (beta: "Normal/Fast but not clear where on the scale").
+		var mult: String = ("%.2f" % speed_scales[idx]).rstrip("0").rstrip(".")
+		speed_label.text = "Speed: %s  (%sx)   %d / 5" % [speed_names[idx], mult, idx + 1]
 
 func _on_slider_value_changed(value):
 	if is_snapping:

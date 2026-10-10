@@ -51,29 +51,39 @@ func _ready():
 func _preset_title() -> String:
 	return "Bottleneck"
 
-func _preset_intro_bbcode() -> String:
+# One sentence. Shown above the lab for the whole run and on the results card.
+func _takeaway_line() -> String:
+	return "After a crash the numbers come back. The lost colors never do."
+
+func _science_bbcode() -> String:
 	return (
-		"[b]THE SCIENCE[/b]\n\n"
-		+ "Genetic drift is a change in how common each allele (each version of a gene) is in a population, caused by chance rather than by any allele being better than another. It happens in every population that is not infinitely large, and its effects are strongest in small populations.\n\n"
+		"[b]A crash kills at random. The survivors are a small sample — and a small sample can't carry every color.[/b]\n"
+		+ "The population breeds back to full size from whoever survived, so the recovered mix is the survivors' mix. "
+		+ "Any color no survivor carried is gone for good."
+	)
+
+# The full write-up + sources. "Read more" on the intro card; Why tab in About.
+func _science_long_bbcode() -> String:
+	return (
+		"Genetic drift is a change in how common each allele (each version of a gene) is in a population, caused by chance rather than by any allele being better than another. It happens in every population that is not infinitely large, and its effects are strongest in small populations.\n\n"
 		+ "A [b]population bottleneck[/b] is genetic drift at its most extreme. Some event — a fire, a drought, a disease, overhunting — kills most of a population in a short time. Which individuals survive has nothing to do with their genes: a fire cannot tell one genotype from another, so no genotype survives it better than any other. The survivors are therefore a random sample of the original population, and a small random sample is usually not a representative one.\n\n"
 		+ "From that moment on, the survivors' allele frequencies [i]are[/i] the population's allele frequencies, however different they may be from what existed before. Any allele that no survivor happened to carry is gone permanently, because offspring can only inherit alleles their parents have. Even a beneficial allele can be lost this way.\n\n"
 		+ "Real case: northern elephant seals were hunted down to roughly twenty animals by the 1890s. Protected since then, they have rebounded to well over 100,000 — but they carry far less genetic variation than southern elephant seals, which were never hunted so severely. The headcount recovered fully. The diversity did not, and could not.\n\n"
 		+ "Two consequences follow. First, the smaller the surviving group, the more diversity is lost. Second, bottlenecks compound: a population that is hit again and again loses a further slice of variation each time, even if each individual crash is mild.\n\n"
-		+ "[i]Sources: Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); OpenStax, Biology for AP Courses §19.2 Population Genetics; UC Berkeley Understanding Evolution, \"Bottlenecks and founder effects\"; Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2).[/i]\n\n"
-	) + _howto_bbcode()
+		+ "[i]Sources: Khan Academy, \"Genetic drift\" (AP Biology, Population genetics); OpenStax, Biology for AP Courses §19.2 Population Genetics; UC Berkeley Understanding Evolution, \"Bottlenecks and founder effects\"; Biology LibreTexts, \"Genetic Drift\" (Raven 12th ed. §20.9.2).[/i]"
+	)
 
-# Shown on the start screen (after THE SCIENCE) and again, on demand, in the
-# pause popup opened by the help button that DriftPreset puts in the panel.
+# Shown on the intro card and, on demand, in the About popup's How tab.
 func _howto_bbcode() -> String:
 	return (
-		"[b]HOW THIS SIMULATION WORKS[/b]\n"
-		+ "[i]This section is about the sim, not the biology.[/i]\n\n"
-		+ "The pen holds 24 blobs in three colors, 8 of each. Color is a blob's only gene. The slider sets how many blobs survive each crash, from 2 to 12. When you press Crash, the blobs are shuffled and every blob past that number dies — survival is random with respect to color. The survivors then breed the pen back up to 24; each offspring inherits the color of one parent, chosen at random. Once the pen is back to full size the button re-arms and you can crash it again. Every crash is marked on the graph, and the results card compares the population before the first crash with the population at the end.\n\n"
-		+ "[b]WHAT TO DO[/b]\n\n"
-		+ "1.  Leave the slider at 4 and press Crash once. Watch the bars while the population recovers.\n"
-		+ "2.  When the button re-arms, crash it again. Keep going until a color disappears.\n"
-		+ "3.  Run it again at 12 survivors and crash it five or more times. Then run it at 2.\n"
-		+ "4.  Before every crash, predict how many colors will survive it. Check yourself against the log."
+		"[b]How it works[/b]\n"
+		+ "•  24 blobs, 8 per color. The slider sets how many survive a crash.\n"
+		+ "•  Crash → everyone past that number dies, chosen at random.\n"
+		+ "•  Survivors breed back to 24, then you can crash again.\n\n"
+		+ "[b]What to do[/b]\n"
+		+ "1.  Leave 4 survivors. Crash once and watch the recovery.\n"
+		+ "2.  Crash again until a color disappears.\n"
+		+ "3.  Run it at 12 survivors, then at 2. Compare."
 	)
 
 func _preset_questions() -> Array:
@@ -184,7 +194,7 @@ func _event_summary() -> String:
 		recovery = "The population was at [b]%d of %d[/b] when you stopped, carrying %d of the original %d colors." % [
 			end_total, p_max_pop, end_colors, before_colors]
 
-	return "[b]%d crash%s.[/b]\n\n%s\n\n%s\n\nThis is the part that catches people out. A bottleneck doesn't permanently shrink a population — numbers bounce back, sometimes within a generation or two. What doesn't bounce back is [b]genetic diversity[/b], because everything alive afterwards descends from the handful that made it, and their mix is the only mix there is. Repeat the crash and every survivor sample takes another bite.\n\nIt's why conservation biologists care about a species' historical low point, not its current headcount. Cheetahs, northern elephant seals, and European bison all recovered in numbers and are still living with the genetics of a few dozen survivors." % [
+	return "[b]%d crash%s.[/b]\n\n%s\n\n%s\n\nNumbers bounce back. [b]Diversity doesn't[/b] — everything alive now descends from the few that made it, and their mix is the only mix there is. That's why biologists care about a species' lowest point, not its current headcount." % [
 		fire_count, "" if fire_count == 1 else "es", diversity, recovery]
 
 func start_simulation():
