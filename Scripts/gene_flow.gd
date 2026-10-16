@@ -287,6 +287,11 @@ func _process(delta):
 		return
 	_update_gate(delta)
 	_track_migration()
+	# The header (PopLabel) refreshes every frame but the side panel only
+	# refreshed with the tracker, every 0.5 s — so the two crossing counts
+	# disagreed for up to half a second after every crossing. (Beta bug.)
+	# The live text lines are cheap, so refresh them every frame too.
+	_refresh_live_labels()
 
 func _update_gate(delta):
 	if sim_time < SEAL_UNTIL:
@@ -499,12 +504,16 @@ func update_tracker():
 			bar_fills[i][c].size = Vector2(pct * TRACK_W, TRACK_H)
 			bar_labels[i][c].text = "%d%% (%d)" % [int(round(pct * 100)), counts[c]]
 
-	var d: float = _divergence()
+	_refresh_live_labels()
+
+# Gate state, difference, crossings — the one-line readouts. Called every
+# frame from _process and again from update_tracker.
+func _refresh_live_labels():
 	if lbl_diff:
+		var d: float = _divergence()
 		lbl_diff.text = "Pens are %d%% different" % int(round(d))
 		lbl_diff.add_theme_color_override("font_color",
 			Color(1.0, 0.62, 0.45) if d >= 30.0 else Color(0.62, 0.90, 0.70))
-
 	if lbl_gate:
 		if sim_time < SEAL_UNTIL:
 			var left: int = int(ceil(SEAL_UNTIL - sim_time))

@@ -55,14 +55,47 @@ class ZoneOverlay extends Node2D:
 	var rect: Rect2 = Rect2()
 	var active: bool = false
 	var flash: float = 0.0
+	var flash_kills: int = 0           # shown as a big "−N" during the flash
+	var pulse: float = 0.0             # drives the aiming hint's breathing
+
+	const HINT_SIZE := 15
+	const KILL_SIZE := 34
 
 	func _draw():
+		var font := ThemeDB.fallback_font
 		if flash > 0.0:
+			# Impact: filled flash, an expanding ring, and the kill count.
+			# Beta: "clearer click feedback when you land a strike".
 			draw_rect(rect, Color(1.0, 0.35, 0.10, 0.55 * flash), true)
 			draw_rect(rect, Color(1.0, 0.60, 0.30, flash), false, 3.0)
+			var grow: float = (1.0 - flash) * 60.0
+			draw_rect(rect.grow(grow), Color(1.0, 0.55, 0.25, flash * 0.6), false, 2.0)
+			var txt: String = ("−%d" % flash_kills) if flash_kills > 0 else "MISS"
+			var tw: float = font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, KILL_SIZE).x
+			var pos := Vector2(rect.get_center().x - tw * 0.5,
+				rect.get_center().y + KILL_SIZE * 0.35 - (1.0 - flash) * 24.0)
+			draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, KILL_SIZE,
+				Color(0, 0, 0, flash * 0.8))
+			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, KILL_SIZE,
+				Color(1.0, 0.95, 0.85, flash))
 			return
 		if not active:
 			return
+
+		# Aiming hint, pinned under (or above) the zone so it's impossible to
+		# miss. Beta: "wasn't sure if I click the zone or the blobs".
+		var hint := "LEFT-CLICK to strike   ·   right-click to cancel"
+		var hw: float = font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_SIZE).x
+		var hy: float = rect.end.y + 22.0
+		if preset != null and hy + 10.0 > preset.world_bounds.end.y:
+			hy = rect.position.y - 12.0
+		var hx: float = rect.get_center().x - hw * 0.5
+		var a: float = 0.75 + 0.25 * sin(pulse * 5.0)
+		var pad := Rect2(hx - 10.0, hy - HINT_SIZE - 2.0, hw + 20.0, HINT_SIZE + 10.0)
+		draw_rect(pad, Color(0.08, 0.08, 0.10, 0.85), true)
+		draw_rect(pad, Color(1.0, 0.55, 0.30, a), false, 1.5)
+		draw_string(font, Vector2(hx, hy), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, HINT_SIZE,
+			Color(1.0, 0.80, 0.60, a))
 
 		draw_rect(rect, Color(1.0, 0.30, 0.15, 0.14), true)
 		draw_rect(rect, Color(1.0, 0.48, 0.28, 0.92), false, 2.0)
@@ -152,7 +185,7 @@ func _repeat_mode() -> int:
 	return REPEAT_AFTER_RECOVERY
 
 func _fire_button_text() -> String:
-	return "Arm disaster" if fire_count == 0 else "Arm next strike"
+	return "Arm disaster  →  then click the lab" if fire_count == 0 else "Arm next strike"
 
 func _build_extra_controls(vb: VBoxContainer):
 	lbl_zone = Label.new()
@@ -198,7 +231,8 @@ func _on_fire_pressed():
 	zone_overlay.active = true
 	if btn_fire:
 		btn_fire.disabled = true
-	_set_status("Armed — click in the lab to strike. Right-click to cancel.")
+	_set_status("ARMED — the zone follows your mouse. Left-click in the lab to strike. Right-click to cancel.")
+	_set_caption("The zone is following your mouse. Move it over a cluster, then LEFT-CLICK to strike.")
 
 func _cancel_arm():
 	armed = false
@@ -213,11 +247,12 @@ func _process(delta):
 
 	if flash_left > 0.0:
 		flash_left -= delta
-		zone_overlay.flash = max(0.0, flash_left / 0.45)
+		zone_overlay.flash = max(0.0, flash_left / 0.7)
 		zone_overlay.queue_redraw()
 
 	if not armed:
 		return
+	zone_overlay.pulse += delta
 	_track_zone_to_cursor()
 	_update_contents_label()
 
@@ -281,12 +316,13 @@ func _do_event():
 	for c in range(3):
 		total_killed[c] += last_killed[c]
 
-	flash_left = 0.45
+	var k: int = last_killed[0] + last_killed[1] + last_killed[2]
+	flash_left = 0.7
 	zone_overlay.rect = zone
 	zone_overlay.flash = 1.0
+	zone_overlay.flash_kills = k
 	zone_overlay.queue_redraw()
 
-	var k: int = last_killed[0] + last_killed[1] + last_killed[2]
 	if k == 0:
 		_log("Strike %d (%s) — missed, zone was empty" % [fire_count, ZONE_NAMES[zone_idx].to_lower()])
 	else:

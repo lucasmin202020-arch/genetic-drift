@@ -4,7 +4,11 @@ extends Control
 #  MAIN MENU
 #  Built entirely in code; the scene is a single Control named "MainMenu".
 #
-#  LAYOUT      title → three mode cards → one wide Info card
+#  LAYOUT      v2 (beta feedback: "add a homepage before the triple split")
+#              HOME   title → one-line pitch → live hero pen with a share bar
+#                     → Start button → "What is genetic drift?" link
+#              MODES  "Choose a mode" → three mode cards → one wide Info card
+#              Both live in this scene; Start / ← Home cross-fade between them.
 #  BACKGROUND  a calm field of soft drifting particles in the trait colours,
 #              two slow colour glows behind them
 #  CARD ICONS  Presets: a seeded 3-colour drift chart that draws itself in,
@@ -53,6 +57,39 @@ var icon_canvases: Array = []
 var title_lbl: Label
 var info_btn: Button
 
+# HOME / MODES pages
+# The home page is for first arrival. Coming back from a lesson lands on the
+# modes page instead — a static var survives scene changes within one run.
+static var seen_home: bool = false
+var home: Control
+var modes: Control
+var home_title: Label
+var home_pitch: Label
+var home_hero: Control
+var home_start: Button
+var modes_title: Label
+var modes_sub: Label
+var modes_home_btn: Button
+var _mode_cards: Array = []   # the three big cards + info bar, for the intro
+# HOME_STYLE picks the hero:
+#   "A"  blobs behind the title — a sparse full-screen pen, dimmed, no frame
+#   "C"  three mascots — big blobs above the title that drift by Moran steps
+const HOME_STYLE := "C"
+
+# --- A: ambient full-screen sim ---
+const AMB_CAP := 14
+const AMB_R := 26.0
+const AMB_ALPHA := 0.55
+var amb_blobs: Array = []      # same dict shape as mini_blobs, pen = viewport
+
+# --- C: mascot row ---
+const MASCOT_R := 54.0
+const MASCOT_GAP := 200.0
+const MASCOT_STEP := 2.6       # seconds between Moran steps
+var mascots: Array = []        # [{ "col": Color, "fade": float (1 = solid), "next": Color }]
+var mascot_timer: float = 0.0
+var mascot_rest: float = 0.0   # pause once everyone's the same colour
+
 # Presets icon: a live allele tracker whose bars drift toward new targets
 var bar_vals: Array = [0.34, 0.33, 0.33]
 var bar_targets: Array = [0.34, 0.33, 0.33]
@@ -62,7 +99,7 @@ const LESSON_NAMES := ["L1 · Coin Flip", "L2 · The Long Shot", "L3 · Small vs
 # Playground icon: a miniature simulation in a fixed-size pen
 const PEN_W := 260.0
 const PEN_H := 92.0
-const MINI_CAP := 8
+const MINI_CAP := 10
 var mini_blobs: Array = []    # {"p","v","col","shape","eyes","age","life","cd"}
 
 # Font cache
@@ -77,6 +114,10 @@ func _ready():
 	get_viewport().size_changed.connect(_fit_to_window)
 	_init_particles()
 	_init_mini_sim()
+	if HOME_STYLE == "A":
+		_init_amb_sim()
+	else:
+		_init_mascots()
 	_build_background()
 	_build_ui()
 	_play_intro()
@@ -160,6 +201,8 @@ func _draw_background() -> void:
 		var col: Color = d["col"]
 		c.draw_circle(p, r * 3.2, Color(col.r, col.g, col.b, a * 0.18))
 		c.draw_circle(p, r, Color(col.r, col.g, col.b, a))
+	if HOME_STYLE == "A":
+		_draw_amb_sim(c)
 
 func _build_background() -> void:
 	var bg := ColorRect.new()
@@ -199,6 +242,10 @@ func _process(delta: float) -> void:
 	_step_particles(delta)
 	_step_bars(delta)
 	_step_mini_sim(delta)
+	if HOME_STYLE == "A":
+		_step_amb_sim(delta)
+	else:
+		_step_mascots(delta)
 	if bg_canvas:
 		bg_canvas.queue_redraw()
 	for ic in icon_canvases:
@@ -213,47 +260,371 @@ func _process(delta: float) -> void:
 #  UI
 # ---------------------------------------------------------------------------
 func _build_ui() -> void:
+	_build_home()
+	_build_modes()
+	if seen_home:
+		home.visible = false
+		modes.visible = true
+	else:
+		home.visible = true
+		modes.visible = false
+		seen_home = true
+
+# ---------------------------------------------------------------------------
+#  HOME — the landing page
+# ---------------------------------------------------------------------------
+func _build_home() -> void:
+	home = Control.new()
+	home.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	home.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(home)
+
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(center)
+	home.add_child(center)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(col)
 
-	title_lbl = Label.new()
-	title_lbl.text = "Genetic Drift Lab"
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_lbl.add_theme_font_override("font", _font(800))
-	title_lbl.add_theme_font_size_override("font_size", 44)
-	title_lbl.add_theme_color_override("font_color", Color(0.97, 0.97, 0.98))
-	col.add_child(title_lbl)
+	home_title = Label.new()
+	title_lbl = home_title
+	home_title.text = "Genetic Drift Lab"
+	home_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_title.add_theme_font_override("font", _font(800))
+	home_title.add_theme_font_size_override("font_size", 54)
+	home_title.add_theme_color_override("font_color", Color(0.97, 0.97, 0.98))
+	col.add_child(home_title)
 
-	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(0, 30)
-	col.add_child(gap)
+	_gap(col, 30)
+
+	if HOME_STYLE == "C":
+		# Three big blobs above the title; the title itself is the hero in A.
+		home_hero = Control.new()
+		home_hero.custom_minimum_size = Vector2(MASCOT_GAP * 2.0 + MASCOT_R * 2.0 + 40.0, MASCOT_R * 2.0 + 30.0)
+		home_hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		home_hero.draw.connect(func(): _draw_mascots(home_hero))
+		col.add_child(home_hero)
+		col.move_child(home_hero, 0)
+		icon_canvases.append(home_hero)
+		var g := Control.new()
+		g.custom_minimum_size = Vector2(0, 6)
+		col.add_child(g)
+		col.move_child(g, 1)
+	else:
+		home_hero = null
+
+	_gap(col, 30)
+
+	home_start = _big_button("Start  →", Color(0.36, 0.55, 0.95), Vector2(260, 56), 21)
+	home_start.pressed.connect(_show_modes)
+	var start_wrap := CenterContainer.new()
+	start_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	start_wrap.add_child(home_start)
+	col.add_child(start_wrap)
+
+	_gap(col, 14)
+
+	var learn := Button.new()
+	learn.text = "What is genetic drift?  ·  Info"
+	learn.flat = true
+	learn.add_theme_font_size_override("font_size", 15)
+	learn.add_theme_color_override("font_color", Color(COL_AMBER.r, COL_AMBER.g, COL_AMBER.b, 0.80))
+	learn.add_theme_color_override("font_hover_color", COL_AMBER)
+	learn.add_theme_color_override("font_pressed_color", COL_AMBER)
+	learn.add_theme_color_override("font_focus_color", COL_AMBER)
+	learn.pressed.connect(func(): _go(INFO_MENU_SCENE))
+	var learn_wrap := CenterContainer.new()
+	learn_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	learn_wrap.add_child(learn)
+	col.add_child(learn_wrap)
+
+# ---------------------------------------------------------------------------
+#  MODES — the three cards (was the whole menu in v1)
+# ---------------------------------------------------------------------------
+func _build_modes() -> void:
+	modes = Control.new()
+	modes.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	modes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(modes)
+
+	# ← Home, top-left, outside the centred column so it never shifts it.
+	modes_home_btn = _big_button("←  Home", Color(0.26, 0.26, 0.30), Vector2(130, 42), 15)
+	modes_home_btn.position = Vector2(18, 16)
+	modes_home_btn.pressed.connect(_show_home)
+	modes.add_child(modes_home_btn)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modes.add_child(center)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(col)
+
+	modes_title = Label.new()
+	modes_title.text = "Choose a mode"
+	modes_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	modes_title.add_theme_font_override("font", _font(800))
+	modes_title.add_theme_font_size_override("font_size", 36)
+	modes_title.add_theme_color_override("font_color", Color(0.97, 0.97, 0.98))
+	col.add_child(modes_title)
+
+	_gap(col, 6)
+
+	modes_sub = Label.new()
+	modes_sub.text = "New here?  Start with Presets — six short guided lessons."
+	modes_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	modes_sub.add_theme_font_size_override("font_size", 15)
+	modes_sub.add_theme_color_override("font_color", COL_DIM)
+	col.add_child(modes_sub)
+
+	_gap(col, 34)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", int(CARD_GAP))
+	row.add_theme_constant_override("separation", int(CARD_GAP + 8.0))
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_child(row)
 
-	row.add_child(_make_card("Presets", "Six guided lessons. Predict, run, then read what happened.", "L1 – L6  ·  Start here", _icon_presets, PRESET_MENU_SCENE))
-	row.add_child(_make_card("Drift Events", "Four experiments. Take a reading, fire the event, compare.", "4 events  ·  Hands-on", _icon_events, EVENTS_MENU_SCENE))
-	row.add_child(_make_card("Playground", "The open sandbox. All three traits tracked, every tool unlocked.", "Sandbox  ·  No rules", _icon_playground, PLAYGROUND_SCENE))
+	_mode_cards.clear()
+	_mode_cards.append(_make_card("Presets", "Six guided lessons. Predict, run, then read what happened.", "L1 – L6  ·  Start here", _icon_presets, PRESET_MENU_SCENE))
+	_mode_cards.append(_make_card("Drift Events", "Four experiments. Take a reading, fire the event, compare.", "4 events  ·  Hands-on", _icon_events, EVENTS_MENU_SCENE))
+	_mode_cards.append(_make_card("Playground", "The open sandbox. All three traits tracked, every tool unlocked.", "Sandbox  ·  No rules", _icon_playground, PLAYGROUND_SCENE))
+	for c in _mode_cards:
+		row.add_child(c)
 
-	var gap2 := Control.new()
-	gap2.custom_minimum_size = Vector2(0, CARD_GAP)
-	col.add_child(gap2)
+	_gap(col, int(CARD_GAP + 8.0))
 
 	info_btn = _make_info_bar()
+	_mode_cards.append(info_btn)
 	var info_wrap := CenterContainer.new()
 	info_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info_wrap.add_child(info_btn)
 	col.add_child(info_wrap)
+
+func _gap(col: VBoxContainer, h: int) -> void:
+	var g := Control.new()
+	g.custom_minimum_size = Vector2(0, h)
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(g)
+
+func _big_button(text: String, base: Color, min_size: Vector2, font_px: int) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = min_size
+	b.add_theme_font_override("font", _font(750))
+	b.add_theme_font_size_override("font_size", font_px)
+	b.add_theme_stylebox_override("normal", _btn_style(base))
+	b.add_theme_stylebox_override("hover", _btn_style(base.lightened(0.10)))
+	b.add_theme_stylebox_override("pressed", _btn_style(base.darkened(0.12)))
+	b.add_theme_stylebox_override("focus", _btn_style(base))
+	b.add_theme_color_override("font_color", Color(0.96, 0.96, 0.97))
+	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
+	b.add_theme_color_override("font_pressed_color", Color(0.96, 0.96, 0.97))
+	b.add_theme_color_override("font_focus_color", Color(0.96, 0.96, 0.97))
+	return b
+
+func _btn_style(c: Color) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = c
+	s.set_corner_radius_all(12)
+	s.content_margin_left = 22
+	s.content_margin_right = 22
+	s.content_margin_top = 8
+	s.content_margin_bottom = 8
+	s.shadow_color = Color(0, 0, 0, 0.30)
+	s.shadow_size = 8
+	s.shadow_offset = Vector2(0, 4)
+	return s
+
+# --- page switching ---
+func _show_modes() -> void:
+	home.visible = false
+	modes.visible = true
+	modes.modulate.a = 0.0
+	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(modes, "modulate:a", 1.0, 0.22)
+	_play_cards_intro()
+
+func _show_home() -> void:
+	modes.visible = false
+	home.visible = true
+	home.modulate.a = 0.0
+	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(home, "modulate:a", 1.0, 0.22)
+
+# ===========================================================================
+#  A — AMBIENT SIM: the whole screen is a sparse pen. Drawn on bg_canvas, so
+#  it sits behind every page (home and modes alike) and behind the text.
+# ===========================================================================
+func _spawn_amb(p: Vector2, col: Color, age: float) -> void:
+	var ang: float = rng.randf() * TAU
+	amb_blobs.append({
+		"p": p, "v": Vector2(cos(ang), sin(ang)) * rng.randf_range(14.0, 24.0),
+		"col": col, "shape": rng.randi() % 3, "eyes": 1 if rng.randf() < 0.6 else 3,
+		"age": age, "life": rng.randf_range(16.0, 26.0), "cd": 0.0,
+	})
+
+func _init_amb_sim() -> void:
+	var s: Vector2 = get_viewport_rect().size
+	var cols: Array = [COL_RED, COL_GREEN, COL_BLUE]
+	var n := 0
+	while n < 9:
+		var p := Vector2(rng.randf_range(40.0, s.x - 40.0), rng.randf_range(40.0, s.y - 40.0))
+		var rel := p - Vector2(s.x * 0.5, s.y * 0.52)
+		if Vector2(rel.x / (s.x * 0.30), rel.y / (s.y * 0.30)).length() < 1.0:
+			continue
+		_spawn_amb(p, cols[n % 3], rng.randf_range(2.0, 10.0))
+		n += 1
+
+func _step_amb_sim(delta: float) -> void:
+	var s: Vector2 = get_viewport_rect().size
+	var r: float = AMB_R
+	for b in amb_blobs:
+		var d: Dictionary = b
+		var v: Vector2 = d["v"]
+		v = v.rotated(rng.randf_range(-0.8, 0.8) * delta)
+		# keep the middle clear: a soft ellipse around the title + buttons
+		# nudges blobs outward, so the copy is never covered
+		var centre := Vector2(s.x * 0.5, s.y * 0.52)
+		var rel: Vector2 = d["p"] - centre
+		var ell := Vector2(rel.x / (s.x * 0.30), rel.y / (s.y * 0.30))
+		if ell.length() < 1.0:
+			v += rel.normalized() * 60.0 * delta * (1.0 - ell.length())
+			v = v.limit_length(30.0)
+		var p: Vector2 = d["p"] + v * delta
+		if p.x < r and v.x < 0.0: v.x = abs(v.x)
+		if p.x > s.x - r and v.x > 0.0: v.x = -abs(v.x)
+		if p.y < r and v.y < 0.0: v.y = abs(v.y)
+		if p.y > s.y - r and v.y > 0.0: v.y = -abs(v.y)
+		d["p"] = p.clamp(Vector2(r, r), Vector2(s.x - r, s.y - r))
+		d["v"] = v
+		d["age"] = float(d["age"]) + delta
+		d["cd"] = max(0.0, float(d["cd"]) - delta)
+	var births: Array = []
+	for i in range(amb_blobs.size()):
+		for j in range(i + 1, amb_blobs.size()):
+			if amb_blobs.size() + births.size() >= AMB_CAP:
+				break
+			var a: Dictionary = amb_blobs[i]
+			var bb: Dictionary = amb_blobs[j]
+			if float(a["age"]) < 2.0 or float(bb["age"]) < 2.0:
+				continue
+			if float(a["cd"]) > 0.0 or float(bb["cd"]) > 0.0:
+				continue
+			var pa: Vector2 = a["p"]
+			var pb: Vector2 = bb["p"]
+			if pa.distance_to(pb) < r * 2.0:
+				a["cd"] = 6.0
+				bb["cd"] = 6.0
+				var away: Vector2 = (pa - pb).normalized()
+				a["v"] = away * float(a["v"].length())
+				bb["v"] = -away * float(bb["v"].length())
+				births.append({"p": (pa + pb) * 0.5, "col": a["col"] if rng.randf() < 0.5 else bb["col"]})
+	for nb in births:
+		var n: Dictionary = nb
+		_spawn_amb(n["p"], n["col"], 0.0)
+	var alive: Array = []
+	for b in amb_blobs:
+		var d: Dictionary = b
+		if float(d["age"]) < float(d["life"]):
+			alive.append(d)
+	amb_blobs = alive
+	var cols: Array = [COL_RED, COL_GREEN, COL_BLUE]
+	while amb_blobs.size() < 5:
+		_spawn_amb(Vector2(rng.randf_range(40.0, s.x - 40.0), rng.randf_range(40.0, s.y - 40.0)),
+			cols[rng.randi() % 3], 2.0)
+
+func _draw_amb_sim(c: Control) -> void:
+	for b in amb_blobs:
+		var d: Dictionary = b
+		var age: float = float(d["age"])
+		var life: float = float(d["life"])
+		var grow: float = clamp(0.35 + 0.65 * age / 2.0, 0.35, 1.0)
+		var fade: float = clamp((life - age) / 2.0, 0.0, 1.0) * clamp(age / 0.6, 0.0, 1.0)
+		var col: Color = d["col"]
+		col.a = fade * AMB_ALPHA
+		var p: Vector2 = d["p"]
+		var rr: float = AMB_R * grow
+		var blink: bool = fmod(t + p.x * 0.05, 4.1) < 0.12
+		# soft halo so dimmed blobs still read against the dark background
+		c.draw_circle(p, rr * 1.5, Color(col.r, col.g, col.b, col.a * 0.07))
+		_draw_blob(c, p, rr, col, int(d["shape"]), int(d["eyes"]), blink)
+		if age >= 2.0 and age < 2.6:
+			var k: float = 1.0 - (age - 2.0) / 0.6
+			c.draw_arc(p, rr + 4.0 + 8.0 * (1.0 - k), 0.0, TAU, 32, Color(1, 1, 1, 0.5 * k * fade * AMB_ALPHA), 2.0, true)
+
+# ===========================================================================
+#  C — MASCOTS: three big blobs that drift by Moran steps. Every MASCOT_STEP
+#  seconds one fades out and comes back as a copy of a random other — so the
+#  row wanders to one colour, rests, and reshuffles.
+# ===========================================================================
+func _init_mascots() -> void:
+	mascots = [
+		{"col": COL_RED,   "fade": 1.0, "next": COL_RED},
+		{"col": COL_GREEN, "fade": 1.0, "next": COL_GREEN},
+		{"col": COL_BLUE,  "fade": 1.0, "next": COL_BLUE},
+	]
+	mascot_timer = 0.0
+	mascot_rest = 0.0
+
+func _step_mascots(delta: float) -> void:
+	# fades in progress
+	for m in mascots:
+		var d: Dictionary = m
+		var f: float = float(d["fade"])
+		if f < 1.0:
+			f += delta * 1.6
+			if f >= 1.0:
+				f = 1.0
+				d["col"] = d["next"]
+			elif f >= 0.5 and not d["col"].is_equal_approx(d["next"]):
+				# swap colour at the midpoint of the fade (fully transparent)
+				d["col"] = d["next"]
+			d["fade"] = f
+	# all one colour? rest, then reshuffle
+	var same: bool = mascots[0]["col"].is_equal_approx(mascots[1]["col"]) \
+		and mascots[1]["col"].is_equal_approx(mascots[2]["col"])
+	if same:
+		mascot_rest += delta
+		if mascot_rest > 3.0:
+			_init_mascots()
+			for m in mascots:
+				m["fade"] = 0.0
+		return
+	mascot_timer += delta
+	if mascot_timer < MASCOT_STEP:
+		return
+	mascot_timer = 0.0
+	var victim: int = rng.randi() % 3
+	var parent: int = (victim + 1 + rng.randi() % 2) % 3
+	var v: Dictionary = mascots[victim]
+	v["next"] = mascots[parent]["col"]
+	v["fade"] = 0.0
+
+func _draw_mascots(c: Control) -> void:
+	var cy: float = c.size.y * 0.5
+	var cx0: float = c.size.x * 0.5 - MASCOT_GAP
+	for i in range(3):
+		var d: Dictionary = mascots[i]
+		var f: float = float(d["fade"])
+		# fade: 1→0 on the way out (f 0→0.5), 0→1 on the way in (0.5→1)
+		var a: float = 1.0
+		if f < 1.0:
+			a = abs(f - 0.5) * 2.0
+		var col: Color = d["col"]
+		col.a = a
+		var pos := Vector2(cx0 + MASCOT_GAP * float(i), cy + sin(t * 1.3 + float(i) * 2.1) * 4.0)
+		var r: float = MASCOT_R * (0.85 + 0.15 * a)
+		c.draw_circle(pos, r * 1.5, Color(col.r, col.g, col.b, a * 0.10))
+		var blink: bool = fmod(t + float(i) * 1.7, 4.3) < 0.14
+		_draw_blob(c, pos, r, col, 0, 1, blink)
+		if f >= 0.5 and f < 1.0:
+			c.draw_arc(pos, r + 6.0 + 10.0 * (f - 0.5) * 2.0, 0.0, TAU, 40, Color(1, 1, 1, 0.5 * (1.0 - f)), 2.0, true)
 
 # ---------------------------------------------------------------------------
 #  CARDS
@@ -402,18 +773,28 @@ func _on_card_down(entry: Dictionary) -> void:
 #  INTRO ANIMATION
 # ---------------------------------------------------------------------------
 func _play_intro() -> void:
-	title_lbl.modulate.a = 0.0
+	if modes.visible:
+		_play_cards_intro()
+		return
+	var items: Array = [home_title, home_start]
+	if home_hero != null:
+		items.insert(0, home_hero)
 	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tw.tween_property(title_lbl, "modulate:a", 1.0, 0.5)
-	for i in range(cards.size()):
-		var d: Dictionary = cards[i]
-		var btn: Button = d["btn"]
+	for i in range(items.size()):
+		var n: Control = items[i]
+		n.modulate.a = 0.0
+		tw.tween_property(n, "modulate:a", 1.0, 0.45).set_delay(0.08 + 0.10 * float(i))
+
+func _play_cards_intro() -> void:
+	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	for i in range(_mode_cards.size()):
+		var btn: Button = _mode_cards[i]
 		btn.modulate.a = 0.0
 		btn.scale = Vector2(0.94, 0.94)
 		btn.call_deferred("set_pivot_offset", btn.custom_minimum_size * 0.5)
-		var delay: float = 0.18 + 0.09 * float(i)
-		tw.tween_property(btn, "modulate:a", 1.0, 0.45).set_delay(delay)
-		tw.tween_property(btn, "scale", Vector2.ONE, 0.45).set_delay(delay)
+		var delay: float = 0.06 + 0.08 * float(i)
+		tw.tween_property(btn, "modulate:a", 1.0, 0.40).set_delay(delay)
+		tw.tween_property(btn, "scale", Vector2.ONE, 0.40).set_delay(delay)
 
 # ---------------------------------------------------------------------------
 #  CARD ICONS
@@ -574,7 +955,11 @@ func _step_mini_sim(delta: float) -> void:
 		_random_mini(2.0)
 
 func _icon_playground(c: Control) -> void:
-	var rect := Rect2(6.0, 6.0, c.size.x - 12.0, c.size.y - 12.0)
+	_draw_pen(c, Rect2(6.0, 6.0, c.size.x - 12.0, c.size.y - 12.0), 1.0)
+
+# Draws the mini sim into any rect. blob_scale multiplies the blob radius so
+# the same sim reads right as a card icon (1.0) and as the home hero (2.0).
+func _draw_pen(c: Control, rect: Rect2, blob_scale: float) -> void:
 	c.draw_rect(rect, COL_PLOT_BG, true)
 	var sx: float = rect.size.x / PEN_W
 	var sy: float = rect.size.y / PEN_H
@@ -588,13 +973,13 @@ func _icon_playground(c: Control) -> void:
 		col.a = fade
 		var p: Vector2 = d["p"]
 		var pos: Vector2 = rect.position + Vector2(p.x * sx, p.y * sy)
-		var r: float = 9.0 * grow
+		var r: float = 9.0 * grow * blob_scale
 		var blink: bool = fmod(t + p.x * 0.05, 4.1) < 0.12
 		_draw_blob(c, pos, r, col, int(d["shape"]), int(d["eyes"]), blink)
 		# adult glow: a brief ring when a blob comes of age
 		if age >= 1.5 and age < 2.1:
 			var k: float = 1.0 - (age - 1.5) / 0.6
-			c.draw_arc(pos, r + 3.0 + 4.0 * (1.0 - k), 0.0, TAU, 24, Color(1.0, 1.0, 1.0, 0.6 * k * fade), 1.5, true)
+			c.draw_arc(pos, r + 3.0 + 4.0 * (1.0 - k), 0.0, TAU, 24, Color(1.0, 1.0, 1.0, 0.6 * k * fade), 1.5 * blob_scale, true)
 	c.draw_rect(rect, Color(1, 1, 1, 0.12), false, 1.0)
 
 func _icon_info(c: Control) -> void:

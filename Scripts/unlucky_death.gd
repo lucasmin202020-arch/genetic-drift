@@ -36,6 +36,66 @@ var chk_auto: CheckButton
 
 var deaths_by_color: Array = [0, 0, 0]
 var births_by_color: Array = [0, 0, 0]
+var step_marks: StepMarks = null
+
+const Z_MARKS := 9                 # above blobs, below cards
+
+# ===========================================================================
+#  STEP MARKS  (beta: "needs a visual of WHICH blob died")
+#  After every press: a skull-ish X in the victim's colour where it died,
+#  and a "+" burst where the child appeared. Both fade over ~1.2 s. Marks
+#  are drawn here, not on the blob, because the blob is already shrinking.
+# ===========================================================================
+class StepMarks extends Node2D:
+	var marks: Array = []          # [{ "p": Vector2, "col": Color, "kind": int, "t": float }]
+	const LIFE := 1.2
+	const KIND_DEATH := 0
+	const KIND_BIRTH := 1
+
+	func add(p: Vector2, col: Color, kind: int) -> void:
+		marks.append({"p": p, "col": col, "kind": kind, "t": 0.0})
+
+	func _process(delta: float) -> void:
+		if marks.is_empty():
+			return
+		var keep: Array = []
+		for m in marks:
+			m["t"] = float(m["t"]) + delta
+			if float(m["t"]) < LIFE:
+				keep.append(m)
+		marks = keep
+		queue_redraw()
+
+	func _draw() -> void:
+		var font := ThemeDB.fallback_font
+		for m in marks:
+			var k: float = float(m["t"]) / LIFE          # 0 → 1
+			var a: float = 1.0 - k * k
+			var p: Vector2 = m["p"]
+			var col: Color = m["col"]
+			if int(m["kind"]) == KIND_DEATH:
+				var r: float = 18.0 + k * 22.0
+				draw_arc(p, r, 0.0, TAU, 40, Color(col.r, col.g, col.b, a * 0.9), 2.5, true)
+				var x: float = 13.0
+				var w: float = 4.0
+				draw_line(p + Vector2(-x, -x), p + Vector2(x, x), Color(0, 0, 0, a), w + 2.0)
+				draw_line(p + Vector2(-x, x), p + Vector2(x, -x), Color(0, 0, 0, a), w + 2.0)
+				draw_line(p + Vector2(-x, -x), p + Vector2(x, x), Color(1, 0.92, 0.92, a), w)
+				draw_line(p + Vector2(-x, x), p + Vector2(x, -x), Color(1, 0.92, 0.92, a), w)
+				var txt := "DIED"
+				var tw: float = font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+				draw_string(font, p + Vector2(-tw * 0.5, -22.0 - k * 10.0), txt,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 0.9, 0.9, a))
+			else:
+				var r: float = 10.0 + k * 26.0
+				draw_arc(p, r, 0.0, TAU, 32, Color(col.r, col.g, col.b, a * 0.8), 2.0, true)
+				var x: float = 9.0
+				draw_line(p + Vector2(-x, 0), p + Vector2(x, 0), Color(1, 1, 1, a), 3.0)
+				draw_line(p + Vector2(0, -x), p + Vector2(0, x), Color(1, 1, 1, a), 3.0)
+				var txt := "BORN"
+				var tw: float = font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+				draw_string(font, p + Vector2(-tw * 0.5, -20.0 - k * 10.0), txt,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.9, 1, 0.9, a))
 
 func _ready():
 	p_start_mix = [4, 4, 4]
@@ -43,6 +103,9 @@ func _ready():
 	p_time_cap = 600.0             # ends at fixation, not on a clock
 	p_speed_index = 3
 	super._ready()
+	step_marks = StepMarks.new()
+	step_marks.z_index = Z_MARKS
+	add_child(step_marks)
 
 # Nobody dies of old age. The button is the only source of death.
 func _rolled_lifespan() -> float:
@@ -147,6 +210,8 @@ func _do_event():
 	var victim = alive[randi() % alive.size()]
 	var victim_color: int = victim.color_trait
 	deaths_by_color[victim_color] += 1
+	if step_marks:
+		step_marks.add(victim.global_position, preset_color_tints[victim_color], StepMarks.KIND_DEATH)
 	victim.die()
 
 	# --- half two: a survivor has a child ---
@@ -160,7 +225,9 @@ func _do_event():
 		return
 	var parent = survivors[randi() % survivors.size()]
 	births_by_color[parent.color_trait] += 1
-	_spawn_child_of(parent)
+	var child = _spawn_child_of(parent)
+	if step_marks and child:
+		step_marks.add(child.global_position, preset_color_tints[parent.color_trait], StepMarks.KIND_BIRTH)
 
 	_log("%s died, %s was born" % [
 		preset_color_names[victim_color].to_lower(),
@@ -183,6 +250,7 @@ func _spawn_child_of(parent):
 	blob.connect("tree_exited", _on_blob_removed.bind(blob))
 	blobs.append(blob)
 	births += 1
+	return blob
 
 # ---------------------------------------------------------------------------
 #  SUMMARY

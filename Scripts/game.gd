@@ -405,11 +405,24 @@ func _update_pop_label():
 	var pop_label = get_node_or_null("PopLabel")
 	if not pop_label:
 		return
-	var alive = blobs.filter(func(b): return is_instance_valid(b) and not b.is_dying)
+	var alive: Array = []
+	var dying_now: int = 0
+	for b in blobs:
+		if not is_instance_valid(b):
+			continue
+		if b.is_dying:
+			dying_now += 1
+		else:
+			alive.append(b)
 	var mins = int(sim_time) / 60
 	var secs = int(sim_time) % 60
+	# `deaths` only increments when a blob's 0.8 s death animation finishes
+	# and it leaves the tree, but Population drops the instant it starts
+	# dying — so after a disaster the two numbers disagreed for most of a
+	# second (beta: "population numbers briefly out of sync"). Count blobs
+	# that are mid-death as already dead, so both move together.
 	pop_label.text = "Population: %d / %d    Time: %d:%02d    Births: %d    Deaths: %d" % [
-		alive.size(), max_population, mins, secs, births, deaths
+		alive.size(), max_population, mins, secs, births, deaths + dying_now
 	]
 
 # --- START-GATED VISIBILITY ---
@@ -700,7 +713,9 @@ func _on_delta_toggle():
 
 # --- SNAPSHOT ---
 func take_snapshot() -> Dictionary:
-	var alive = blobs.filter(func(b): return is_instance_valid(b) and not b.is_dying and not b.is_being_born)
+	# Newborns count: PopLabel, the lab bar and the graph all include them,
+	# so the tracker must too or its percentages lag during a recovery.
+	var alive = blobs.filter(func(b): return is_instance_valid(b) and not b.is_dying)
 	var total = alive.size()
 	if total == 0:
 		return {}
@@ -723,7 +738,9 @@ func take_snapshot() -> Dictionary:
 
 # --- TRACKER ---
 func update_tracker():
-	var alive = blobs.filter(func(b): return is_instance_valid(b) and not b.is_dying and not b.is_being_born)
+	# Newborns count: PopLabel, the lab bar and the graph all include them,
+	# so the tracker must too or its percentages lag during a recovery.
+	var alive = blobs.filter(func(b): return is_instance_valid(b) and not b.is_dying)
 	var total = alive.size()
 	if total == 0:
 		_clear_tracker()
