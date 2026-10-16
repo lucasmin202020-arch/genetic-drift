@@ -10,9 +10,10 @@ config_version=5
 
 [application]
 
-config/name="Genetic Drift"
+config/name="DriftSim"
 run/main_scene="uid://8g1qy3evbatt"
 config/features=PackedStringArray("4.6", "GL Compatibility")
+config/icon="res://web/icon-512.png"
 
 [display]
 
