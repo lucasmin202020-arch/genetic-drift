@@ -142,6 +142,7 @@ func _build_section_table() -> void:
 				{"group": "DRIFT EVENTS", "title": "Natural Disaster", "blocks": _e_disaster},
 				{"group": "DRIFT EVENTS", "title": "Bottleneck", "blocks": _e_bottleneck},
 				{"group": "DRIFT EVENTS", "title": "Founder Effect", "blocks": _e_founder},
+				{"group": "SANDBOX", "title": "Sandbox", "blocks": _e_sandbox},
 			],
 		},
 	]
@@ -1725,7 +1726,7 @@ Each blob is one individual. Every blob carries three independent traits:
 
 All three are [b]purely cosmetic[/b]. No colour survives better, no shape breeds faster. That keeps this a [b]pure drift model[/b]: every change you see is chance."""),
 		F(_fig_traits, 250, "The three trait sets. Every combination is possible, and none affects survival or reproduction."),
-		T("""The presets track [b]colour only[/b] — one clear number is easier to read than three. The Playground tracks all three, and they drift independently."""),
+		T("""The presets track [b]colour only[/b] — one clear number is easier to read than three. The Sandbox tracks all three, and they drift independently."""),
 	]
 
 func _e_life() -> Array:
@@ -1760,7 +1761,7 @@ func _e_speed() -> Array:
 		T(_h("Speed and controls") + """
 
 The speed slider scales the whole simulation uniformly — five settings from 0.25× to 1.25×. It never favours any trait; it only changes how fast time passes. A run at high speed is the same run, just faster."""),
-		C("A GOOD HABIT", "Before pressing anything, write down the tracker numbers. Then trigger the event and compare. Drift Events does this for you; in the Playground you'll do it yourself.", COL_GREEN),
+		C("A GOOD HABIT", "Before pressing anything, write down the tracker numbers. Then trigger the event and compare. Drift Events does this for you; in the Sandbox the Last event card in the Events tab does it too.", COL_GREEN),
 	]
 
 func _e_modes() -> Array:
@@ -1771,8 +1772,8 @@ func _e_modes() -> Array:
 
 [b]Drift Events[/b] — Four hands-on experiments. Take a reading, fire the event yourself, compare before and after.
 
-[b]Playground[/b] — The open sandbox. All three traits tracked, every tool unlocked."""),
-		C("SUGGESTED ORDER", "Presets L1 → L6, then the four Drift Events, then the Playground. Every scenario is explained in the [b]Scenarios[/b] section here.", COL_BLUE),
+[b]Sandbox[/b] — Your own lab. Build a population, then paint in migrants, drop meteors, build walls and change the rules. Six optional goals."""),
+		C("SUGGESTED ORDER", "Presets L1 → L6, then the four Drift Events, then the Sandbox. Every scenario is explained in the [b]Scenarios[/b] section here.", COL_BLUE),
 	]
 
 # ===========================================================================
@@ -1895,4 +1896,27 @@ func _e_founder() -> Array:
 		C("THE CONCEPT", "A new population inherits only what its founders had, at whatever frequencies chance dealt. Small founding group → intense early drift → a mix far from the source. This is why island populations differ from the mainland.", COL_BLUE),
 		C("WATCH FOR", "Which colours the island is missing, and whether its leader matches the mainland's. Run again with different founders — the island differs every time.", COL_AMBER),
 		C("BOTTLENECK VS FOUNDER", "In a [b]bottleneck[/b] the population itself crashes. In a [b]founder effect[/b] nothing dies — a few leave and the source continues. Both lose diversity the same way: a small sample can't carry everything.", COL_RED),
+	]
+
+# ===========================================================================
+#  ENTRIES — SANDBOX
+# ===========================================================================
+func _e_sandbox() -> Array:
+	return [
+		T(_h("Sandbox") + "\n" + _q("What can you make chance do?")),
+		C("SETUP", "You choose: 2 to 40 starting blobs, and for each trait an Even, Random, One rare or Off mix. Everything else is up to you.", COL_DIM),
+		T("""[b]Tools[/b] (keys 1 to 5)
+•  [b]Inspect[/b] — hover a blob for its traits, generation and children. Click to pin.
+•  [b]Spawn[/b] — click or drag to add migrants with the traits you pick.
+•  [b]Meteor[/b] — aim a crater and strike a place.
+•  [b]Wall[/b] — drag to build barriers; right-click to remove.
+•  [b]Stir[/b] — a gust that scatters blobs and mixes clumps.
+
+[b]Events[/b] — Unlucky Death, Bottleneck (50–95%), Random Meteor, and Chaos Mode, which fires them on a timer.
+
+[b]World[/b] — population cap, lifespan, breeding rest and wander speed. Each changes every blob equally.
+
+[b]Data[/b] — a graph for Color, Shape or Eyes with event lines, the allele tracker, the last event's before and after, and a log."""),
+		C("STILL PURE DRIFT", "Nothing kills by trait: meteors hit places and events pick at random. Spawning is gene flow, and walls make isolated populations. No version is ever better.", COL_AMBER),
+		C("TRY THIS", "Split the lab with a wall from edge to edge and wait. Each side usually fixes a different color. Then knock the wall down and watch gene flow mix them again.", COL_GREEN),
 	]

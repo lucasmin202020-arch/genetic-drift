@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/sandbox.gd" id="1_sbx"]
+[ext_resource type="PackedScene" uid="uid://bbn3al2ubo6ed" path="res://Scenes/blob.tscn" id="2_sbx"]
+[ext_resource type="Texture2D" uid="uid://breyi4wym17pe" path="res://Graphics/Blobs/blob 1.png" id="3_sbx"]
+[ext_resource type="Texture2D" uid="uid://bdj3pvgdx37ss" path="res://Graphics/Blobs/blob 2.png" id="4_sbx"]
+[ext_resource type="Texture2D" uid="uid://froqy6mdua7m" path="res://Graphics/Blobs/blob 3.png" id="5_sbx"]
+[ext_resource type="Texture2D" uid="uid://d084upj346f50" path="res://Graphics/Blobs/Eye.png" id="6_sbx"]
+[ext_resource type="Texture2D" uid="uid://eppjgnfo1pcs" path="res://Graphics/Blobs/Eye2.png" id="7_sbx"]
+
+[node name="Sandbox" type="Node2D"]
+script = ExtResource("1_sbx")
+blob_scene = ExtResource("2_sbx")
+blob_tex_1 = ExtResource("3_sbx")
+blob_tex_2 = ExtResource("4_sbx")
+blob_tex_3 = ExtResource("5_sbx")
+eye_tex_1 = ExtResource("6_sbx")
+eye_tex_2 = ExtResource("7_sbx")

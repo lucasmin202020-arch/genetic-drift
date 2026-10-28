@@ -20,7 +20,7 @@ extends Control
 #              there the menu silently uses Godot's default font.
 # ===========================================================================
 
-const PLAYGROUND_SCENE := "res://Scenes/Game.tscn"
+const PLAYGROUND_SCENE := "res://Scenes/Sandbox.tscn"
 const PRESET_MENU_SCENE := "res://Scenes/PresetMenu.tscn"
 const EVENTS_MENU_SCENE := "res://Scenes/EventsMenu.tscn"
 const INFO_MENU_SCENE := "res://Scenes/InfoMenu.tscn"
@@ -393,7 +393,7 @@ func _build_modes() -> void:
 	_mode_cards.clear()
 	_mode_cards.append(_make_card("Presets", "Six guided lessons. Predict, run, then read what happened.", "L1 – L6  ·  Start here", _icon_presets, PRESET_MENU_SCENE))
 	_mode_cards.append(_make_card("Drift Events", "Four experiments. Take a reading, fire the event, compare.", "4 events  ·  Hands-on", _icon_events, EVENTS_MENU_SCENE))
-	_mode_cards.append(_make_card("Playground", "The open sandbox. All three traits tracked, every tool unlocked.", "Sandbox  ·  No rules", _icon_playground, PLAYGROUND_SCENE))
+	_mode_cards.append(_make_card("Sandbox", "Your own lab. Paint blobs, drop meteors, build walls, set the rules.", "Free play  ·  Goals", _icon_playground, PLAYGROUND_SCENE))
 	for c in _mode_cards:
 		row.add_child(c)
 
